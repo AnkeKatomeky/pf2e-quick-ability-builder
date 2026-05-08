@@ -1,445 +1,638 @@
-// PF2e Quick Ability Builder — ИСПРАВЛЕННЫЙ ДИЗАЙН (v13 + PF2e) — с defense/against
+const MODULE_ID = "pf2e-quick-ability-builder";
+const MODULE_TITLE = "PF2e Quick Ability Builder";
+
+let activeBuilder;
+
+Hooks.once("init", () => {
+  game.keybindings.register(MODULE_ID, "open-builder", {
+    name: `${MODULE_TITLE}: открыть конструктор`,
+    hint: "Открывает окно для быстрого создания @Damage, @Check и @Template.",
+    editable: [{ key: "KeyB", modifiers: ["Alt"] }],
+    restricted: false,
+    onDown: () => {
+      openBuilder();
+      return true;
+    }
+  });
+});
 
 Hooks.on("getSceneControlButtons", (controls) => {
-  if (!game.user.isGM) return;
-  let tokenTools = controls.tokens || controls.token;
-  if (!tokenTools) return;
+  const tokenControls = controls.tokens ?? controls.token;
+  if (!tokenControls) return;
+
   const tool = {
-    name: "pf2e-quick-builder",
-    title: "PF2e Quick Ability Builder",
-    icon: "fas fa-wand-magic-sparkles",
+    name: "pf2e-quick-ability-builder",
+    title: MODULE_TITLE,
+    icon: "fa-solid fa-wand-magic-sparkles",
     button: true,
     onClick: () => openBuilder()
   };
-  if (Array.isArray(tokenTools.tools)) {
-    tokenTools.tools.push(tool);
+
+  if (Array.isArray(tokenControls.tools)) {
+    if (!tokenControls.tools.some((t) => t.name === tool.name)) tokenControls.tools.push(tool);
   } else {
-    tokenTools.tools ??= {};
-    tokenTools.tools["pf2e-quick-builder"] = tool;
+    tokenControls.tools ??= {};
+    tokenControls.tools[tool.name] ??= tool;
   }
 });
 
 function openBuilder() {
-  const damageTypesObj = game.pf2e?.damageTypes || CONFIG.PF2E?.damageTypes || {};
+  if (activeBuilder?.rendered) {
+    activeBuilder.bringToFront();
+    return;
+  }
 
-  const physical = ['piercing', 'slashing', 'bludgeoning', 'bleed'];
-  const energy = ['fire', 'cold', 'electricity', 'force'];
-  const natural = ['acid', 'poison', 'sonic', 'mental'];
-  const planar = ['spirit', 'vitality', 'void'];
+  activeBuilder = new QuickAbilityBuilder();
+  activeBuilder.render(true);
+}
 
-  const sortedDamageKeys = ['untyped', ...physical, ...energy, ...natural, ...planar];
-
-  const damageTypesHTML = sortedDamageKeys.map(k => `<option value="${k}">${game.i18n.localize(damageTypesObj[k] || k)}</option>`).join('');
-
-  const materialObj = CONFIG.PF2E?.materialDamageEffects || {};
-  const preferredMaterials = ['silver', 'cold-iron', 'adamantine'];
-  const otherMaterials = Object.keys(materialObj).filter(k => !preferredMaterials.includes(k)).sort();
-  const sortedMaterialKeys = [...preferredMaterials, ...otherMaterials];
-
-  const materialHTML = '<option value="">— Без материала —</option>' +
-    sortedMaterialKeys.map(k => `<option value="${k}">${game.i18n.localize(materialObj[k])}</option>`).join('');
-
-  const saveTypes = ['fortitude', 'reflex', 'will', 'perception'];
-  const saveHTML = saveTypes.map(s => {
-    let label;
-    if (s === 'perception') {
-      label = game.i18n.localize("PF2E.PerceptionLabel") || "Восприятие";
-    } else {
-      label = game.i18n.localize(CONFIG.PF2E.saves?.[s] || s);
+class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplicationMixin(
+  foundry.applications.api.ApplicationV2
+) {
+  static DEFAULT_OPTIONS = {
+    id: `${MODULE_ID}-app`,
+    tag: "form",
+    classes: ["pf2e-qab"],
+    window: {
+      title: MODULE_TITLE,
+      icon: "fa-solid fa-wand-magic-sparkles",
+      resizable: true
+    },
+    position: {
+      width: 920,
+      height: "auto"
+    },
+    form: {
+      handler: QuickAbilityBuilder.#onSubmit,
+      submitOnChange: false,
+      closeOnSubmit: false
     }
-    return `<option value="${s}">${label}</option>`;
-  }).join('');
+  };
 
-  const skillHTML = Object.entries(CONFIG.PF2E?.skills || {})
-    .map(([k, v]) => `<option value="${k}">${game.i18n.localize(v.label)}</option>`).join('');
-
-  const html = `
-    <style>
-      :root {
-        --qab-danger: #800000ff;
-        --qab-danger-dark: #730000ff;
-        
-        /* === ЗДЕСЬ МЕНЯЙ ШИРИНЫ САМ (пиксели) === */
-        --check-type-width:  50%;      /* первый селект "Проверка:" */
-        --mode-width:        30%;     /* "Обычный КС / Против защиты / Против DC" */
-        --defense-width:     180px;     /* селекты AC, Стойкость, Class DC и т.д. */
-        --dc-input-width:    140px;      /* поле ввода числа КС */
-      }
-      
-      input[type="checkbox"]:checked { accent-color: var(--qab-danger); }
-      
-      .qab-damage-group {
-        border: 4px solid #80000070;
-        border-radius: 6px;
-        background: rgba(0,0,0,0.05);
-        padding: 12px;
-        margin-bottom: 12px;
-      }
-      
-      .qab-dmg-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        align-items: center;
-        padding: 12px 145px 12px 12px;   /* отступ справа под кнопку "Удалить" */
-        border: 4px solid #80000070;
-        border-radius: 4px;
-        margin-bottom: 8px;
-        position: relative;
-      }
-      
-      .qab-check-type   { min-width: var(--check-type-width); }
-      .qab-mode         { min-width: var(--mode-width); }
-      .qab-defense-select,
-      .qab-against-select { min-width: var(--defense-width); }
-      .qab-check-dc     { width: var(--dc-input-width); }
-      
-      .qab-dc-label {
-        padding: 0 4px;
-        white-space: nowrap;
-        font-weight: 500;
-      }
-      
-      .qab-basic-label {
-        margin-left: 6px;
-        flex-shrink: 0;
-      }
-      
-      .qab-rem {
-        position: absolute !important;
-        top: 50%;
-        transform: translateY(-50%);
-        right: 12px;
-        width: auto !important;
-        min-width: 80px;
-        background: var(--qab-danger) !important;
-        color: white !important;
-        border: 1px solid var(--qab-danger-dark) !important;
-        padding: 6px 18px !important;
-        border-radius: 4px !important;
-        cursor: pointer !important;
-        font-size: 0.85em !important;
-        white-space: nowrap;
-        z-index: 10;
-      }
-      .qab-rem:hover { background: var(--qab-danger-dark) !important; }
-      
-      #add-dmg, #add-check {
-        background: #80000020 !important;
-        border: 2px solid #80000070 !important;
-        color: #800000ff !important;
-        font-weight: 500;
-      }
-      #add-dmg:hover, #add-check:hover { background: #80000040 !important; }
-      
-      #post {
-        background: var(--qab-danger) !important;
-        border-color: var(--qab-danger-dark) !important;
-        color: white;
-      }
-      #post:hover { background: var(--qab-danger-dark) !important; }
-    </style>
-
-    
-    <div class="form-group qab-damage-group">
-      <div class="form-group">
-      <label style="font-weight:bold">Название способности</label>
-      <input id="name" style="width:100%" value="Огненное дыхание">
-      </div>
-      
-      <div class="form-group">
-      <label>Краткое описание</label>
-      <textarea id="desc" rows="2" style="width:100%; resize: vertical;">Существо выдыхает пламя в конусе 30 футов.</textarea>
-      </div>
-    </div>
-    
-    <div class="form-group qab-damage-group">
-      <label style="font-weight:bold">Урон (можно несколько частей)</label>
-      <div id="damages"></div>
-      <button id="add-dmg" class="btn" style="width:100%; margin-top: 8px;">+ Добавить часть урона</button>
-      <div style="margin-top: 8px;">
-        <label style="white-space: nowrap;"><input type="checkbox" id="area-dmg"> По области (area-damage)</label>
-      </div>
-      <div class="form-group" style="margin-top: 8px;">
-        <label>Материал (опционально)</label>
-        <select id="material" style="width:100%;">
-          ${materialHTML}
-        </select>
-      </div>
-      <div class="form-group" style="margin-top: 8px;">
-        <label>Освящение (опционально)</label>
-        <select id="sanct" style="width:100%;">
-          <option value="">— Без освящения —</option>
-          <option value="holy">Святой</option>
-          <option value="unholy">Нечестивый</option>
-        </select>
-      </div>
-      <div class="form-group" style="margin-top: 8px;">
-        <label>Дополнительные трейты (через запятую, опционально)</label>
-        <input id="extra-traits" placeholder="fire,evocation" style="width:100%">
-      </div>
-    </div>
-
-    <div class="form-group qab-damage-group">
-      <label style="font-weight:bold">Проверка / Спасбросок (можно несколько)</label>
-      <div id="checks"></div>
-      <button id="add-check" class="btn" style="width:100%; margin-top: 8px;">+ Добавить проверку</button>
-      
-      <div class="form-group" style="margin-top: 12px;">
-        <label>Показывать КС</label>
-        <select id="showDC" style="width:100%;">
-          <option value="owner" selected>Владелец</option>
-          <option value="gm">ГМ</option>
-          <option value="all">Все</option>
-          <option value="none">Никто</option>
-        </select>
-      </div>
-      <div class="form-group" style="margin-top: 8px;">
-        <label>Теги</label>
-        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-          <label style="white-space: nowrap;"><input type="checkbox" id="trait-secret" title="Не показывать результат игроку"> Секрет</label>
-          <label style="white-space: nowrap;"><input type="checkbox" id="trait-incap" title="Корректировка успеха если применяется к более сильному противнику"> Недееспособность</label>
-          <input id="traits-check" placeholder="poison,death" style="flex:1; min-width:150px;">
-        </div>
-      </div>
-      <div class="form-group" style="margin-top: 8px;">
-        <label>Опции</label>
-        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-          <label style="white-space: nowrap;"><input type="checkbox" id="immutable" title="Не применять Элитные/Слабые корректировки или корректировки от статус эфектов"> Неизменный</label>
-          <label style="white-space: nowrap;"><input type="checkbox" id="opt-damaging" title="Автоматически применяется если это простой спасбросок"> Наносящий урон</label>
-          <label style="white-space: nowrap;"><input type="checkbox" id="opt-breath"> Атака дыханием</label>
-          <input id="options-check" placeholder="action:custom-action" style="flex:1; min-width:150px;">
-        </div>
-      </div>
-    </div>
-
-    <div class="form-group qab-damage-group">
-      <label style="font-weight:bold">Шаблон области</label>
-      <div class="form-fields">
-        <select id="t-type">
-          <option value="" selected>— Без шаблона —</option>
-          <option value="cone">Конус</option>
-          <option value="burst">Взрыв</option>
-          <option value="emanation">Эманация</option>
-          <option value="line">Линия</option>
-        </select>
-        <span style="padding:0 8px">Дистанция (футы):</span>
-        <input id="t-dist" type="number" value="30" style="width:80px">
-      </div>
-    </div>
-
-    <div style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end;">
-      <button id="copy" class="btn">Копировать в буфер</button>
-      <button id="post" class="btn btn-primary">Отправить в чат</button>
-    </div>
-  `;
-
-  new Dialog({
-    title: "⚡ PF2e Quick Ability Builder",
-    content: html,
-    buttons: {},
-    render: (html) => {
-      const $damages = html.find("#damages");
-      const addRow = () => {
-        const row = $(`
-          <div class="qab-dmg-row">
-            <span style="padding:0 8px; white-space:nowrap;">Формула урона:</span>
-            <input type="text" class="qab-formula" value="6d6" placeholder="6d6" style="width:110px;">
-            <span style="padding:0 8px; white-space:nowrap;">Тип урона:</span>
-            <select class="qab-dmg-type">${damageTypesHTML}</select>
-            <div class="qab-traits">
-              <label><input type="checkbox" class="qab-prec">Точный</label>
-              <label><input type="checkbox" class="qab-splash">Брызги</label>
-              <label><input type="checkbox" class="qab-pers">Периодический</label>
-              <label><input type="checkbox" class="qab-heal">Исцеление</label>
-            </div>
-            <button class="qab-rem">Удалить</button>
-          </div>
-        `);
-        $damages.append(row);
-        row.find(".qab-rem").click(() => row.remove());
-      };
-      html.find("#add-dmg").click(addRow);
-      addRow();
-
-      // ==================== ПРОВЕРКИ С РЕЖИМОМ КС ====================
-      const $checks = html.find("#checks");
-
-      const addCheckRow = () => {
-        const row = $(`
-          <div class="qab-dmg-row qab-check-row">
-            <span style="padding:0 8px; white-space:nowrap; font-weight:500; min-width:78px;">Проверка:</span>
-            <select class="qab-check-type">
-              <option value="flat" selected>Чистая проверка</option>
-              ${saveHTML}
-              <optgroup label="Навыки">
-                ${skillHTML}
-              </optgroup>
-            </select>
-
-            <select class="qab-mode">
-              <option value="dc" selected>Обычный КС</option>
-              <option value="defense">Против защиты</option>
-              <option value="against">Против КС</option>
-            </select>
-
-            <span class="qab-dc-label" style="padding:0 6px; white-space:nowrap; font-weight:500;">КС:</span>
-            <input type="number" class="qab-check-dc" value="15">
-
-            <select class="qab-defense-select" style="display:none;">
-              <option value="ac">КБ</option>
-              <option value="fortitude">Стойкость</option>
-              <option value="reflex">Рефлекс</option>
-              <option value="will">Воля</option>
-              <option value="perception">Восприятие</option>
-            </select>
-
-            <select class="qab-against-select" style="display:none;">
-              <option value="class-dc">КС Класса</option>
-              <option value="spell-dc">КС Заклинаний</option>
-              <option value="class-spell">КС Класса/Заклинаний</option>
-            </select>
-
-            <label class="qab-basic-label" style="white-space:nowrap; display:none;">
-              <input type="checkbox" class="qab-basic" checked> Простой
-            </label>
-            
-            <button class="qab-rem">Удалить</button>
-          </div>
-        `);
-        $checks.append(row);
-
-        const $mode = row.find(".qab-mode");
-        const $dcLabel = row.find(".qab-dc-label");
-        const $dcInput = row.find(".qab-check-dc");
-        const $defenseSel = row.find(".qab-defense-select");
-        const $againstSel = row.find(".qab-against-select");
-        const $basicLabel = row.find(".qab-basic-label");
-        const $type = row.find(".qab-check-type");
-
-        const updateMode = () => {
-          const mode = $mode.val();
-          $dcLabel.toggle(mode === "dc");
-          $dcInput.toggle(mode === "dc");
-          $defenseSel.toggle(mode === "defense");
-          $againstSel.toggle(mode === "against");
-
-          const isSave = ['fortitude', 'reflex', 'will'].includes($type.val());
-          $basicLabel.toggle(isSave);
-        };
-
-        $mode.on("change", updateMode);
-        $type.on("change", updateMode);
-        updateMode();
-
-        row.find(".qab-rem").click(() => row.remove());
-      };
-
-      html.find("#add-check").click(addCheckRow);
-      addCheckRow();
-
-      const build = () => {
-        let out = `<h3>${html.find("#name").val()}</h3><p>${html.find("#desc").val()}</p>`;
-
-        // УРОН
-        const parts = [];
-        $damages.find(".qab-dmg-row").each((_, el) => {
-          const $r = $(el);
-          const f = $r.find(".qab-formula").val().trim();
-          if (!f) return;
-          const t = $r.find(".qab-dmg-type").val();
-
-          const inner = [];
-          if ($r.find(".qab-prec").is(":checked")) inner.push("precision");
-          if ($r.find(".qab-splash").is(":checked")) inner.push("splash");
-
-          const outer = [];
-          if ($r.find(".qab-pers").is(":checked")) outer.push("persistent");
-          if ($r.find(".qab-heal").is(":checked")) outer.push("healing");
-          if (t && t !== 'untyped') outer.push(t);
-
-          let term = f;
-          if (inner.length) { term += `[${inner.join(",")}]`; term = `(${term})`; }
-          if (outer.length) term += `[${outer.join(",")}]`;
-
-          parts.push(term);
-        });
-        if (parts.length) {
-          const hasArea = html.find("#area-dmg").is(":checked");
-          let opt = [];
-          if (hasArea) opt.push("area-damage");
-          const m = html.find("#material").val();
-          if (m) opt.push(`damage:material:${m}`);
-          const optStr = opt.length ? `|options:${opt.join(",")}` : "";
-
-          let tr = [];
-          const s = html.find("#sanct").val();
-          if (s) tr.push(s);
-          const extra = html.find("#extra-traits").val().trim();
-          if (extra) tr.push(...extra.split(",").map(t => t.trim()).filter(Boolean));
-          const traitStr = tr.length ? `|traits:${tr.join(",")}` : "";
-
-          out += `<p>@Damage[${parts.join(",")}${optStr}${traitStr}]</p>`;
-        }
-
-        // ПРОВЕРКИ
-        $checks.find(".qab-dmg-row").each((_, el) => {
-          const $r = $(el);
-          const type = $r.find(".qab-check-type").val().trim();
-          if (!type) return;
-
-          const mode = $r.find(".qab-mode").val();
-          let c = `@Check[${type}`;
-
-          if (mode === "dc") {
-            const dcVal = $r.find(".qab-check-dc").val() || "25";
-            c += `|dc:${dcVal}`;
-          } else if (mode === "defense") {
-            c += `|defense:${$r.find(".qab-defense-select").val()}`;
-          } else if (mode === "against") {
-            c += `|against:${$r.find(".qab-against-select").val()}`;
-          }
-
-          if ($r.find(".qab-basic").is(":checked")) c += "|basic:true";
-
-          const show = html.find("#showDC").val();
-          if (show !== "owner") c += `|showDC:${show}`;
-          if (html.find("#immutable").is(":checked")) c += "|immutable:true";
-
-          let traitsList = [];
-          if (html.find("#trait-secret").is(":checked")) traitsList.push("secret");
-          if (html.find("#trait-incap").is(":checked")) traitsList.push("incapacitation");
-          const extraTraits = html.find("#traits-check").val().trim();
-          if (extraTraits) traitsList.push(...extraTraits.split(",").map(t => t.trim()).filter(Boolean));
-          if (traitsList.length) c += `|traits:${traitsList.join(",")}`;
-
-          let optionsList = [];
-          if (html.find("#opt-damaging").is(":checked")) optionsList.push("damaging-effect");
-          if (html.find("#opt-breath").is(":checked")) optionsList.push("action:breath-weapon");
-          const extraOptions = html.find("#options-check").val().trim();
-          if (extraOptions) optionsList.push(...extraOptions.split(",").map(t => t.trim()).filter(Boolean));
-          optionsList = [...new Set(optionsList)];
-          if (optionsList.length) c += `|options:${optionsList.join(",")}`;
-
-          c += "]";
-          out += `<p>${c}</p>`;
-        });
-
-        // ШАБЛОН
-        const tt = html.find("#t-type").val();
-        const td = html.find("#t-dist").val();
-        if (tt) out += `<p>@Template[type:${tt}|distance:${td}]</p>`;
-        return out;
-      };
-
-      html.find("#post").click(() => {
-        ChatMessage.create({ content: build(), speaker: ChatMessage.getSpeaker() });
-      });
-      html.find("#copy").click(() => {
-        navigator.clipboard.writeText(build()).then(() =>
-          ui.notifications.info("✅ Скопировано! Вставляй в описание способности.")
-        );
-      });
+  static PARTS = {
+    form: {
+      template: `modules/${MODULE_ID}/templates/builder.hbs`
     }
-  }, { width: 820 }).render(true);
+  };
+
+  constructor(options = {}) {
+    super(options);
+    this.formState = getDefaultState();
+    this.eventController = null;
+  }
+
+  async _prepareContext(options) {
+    const state = prepareTemplateState(this.formState);
+    return {
+      ...(await super._prepareContext(options)),
+      state,
+      preview: buildMarkup(this.formState)
+    };
+  }
+
+  _onRender(context, options) {
+    super._onRender(context, options);
+    this.eventController?.abort();
+    this.eventController = new AbortController();
+    const { signal } = this.eventController;
+
+    this.#syncModeVisibility();
+    this.element.addEventListener("input", () => this.#refreshPreview(), { signal });
+    this.element.addEventListener("change", () => {
+      this.#syncModeVisibility();
+      this.#refreshPreview();
+    }, { signal });
+    this.element.addEventListener("click", (event) => this.#onClick(event), { signal });
+  }
+
+  close(options) {
+    this.eventController?.abort();
+    if (activeBuilder === this) activeBuilder = null;
+    return super.close(options);
+  }
+
+  #refreshPreview() {
+    const preview = this.element.querySelector("[data-qab-preview]");
+    if (!preview) return;
+    preview.textContent = buildMarkup(this.#collectState());
+  }
+
+  #syncModeVisibility() {
+    for (const row of this.element.querySelectorAll(".qab-row--check")) {
+      const mode = row.querySelector("[data-qab-check-mode]")?.value ?? "dc";
+      row.querySelector(".qab-dc-field")?.classList.toggle("qab-hidden", mode !== "dc");
+      row.querySelector(".qab-defense-field")?.classList.toggle("qab-hidden", mode !== "defense");
+      row.querySelector(".qab-against-field")?.classList.toggle("qab-hidden", mode !== "against");
+    }
+  }
+
+  async #onClick(event) {
+    const target = event.target.closest("[data-qab-action]");
+    if (!target) return;
+
+    event.preventDefault();
+
+    switch (target.dataset.qabAction) {
+      case "add-damage":
+        this.formState = this.#collectState();
+        this.formState.damage.rows.push(createDamageRow());
+        this.render();
+        break;
+      case "remove-damage": {
+        const id = target.closest("[data-row-id]")?.dataset.rowId;
+        this.formState = this.#collectState();
+        this.formState.damage.rows = this.formState.damage.rows.filter((row) => row.id !== id);
+        this.render();
+        break;
+      }
+      case "add-check":
+        this.formState = this.#collectState();
+        this.formState.check.rows.push(createCheckRow());
+        this.render();
+        break;
+      case "remove-check": {
+        const id = target.closest("[data-row-id]")?.dataset.rowId;
+        this.formState = this.#collectState();
+        this.formState.check.rows = this.formState.check.rows.filter((row) => row.id !== id);
+        this.render();
+        break;
+      }
+      case "copy":
+        await this.#copy();
+        break;
+      case "post":
+        await this.#post();
+        break;
+      case "create-action":
+        await this.#createAction();
+        break;
+      case "reset":
+        this.formState = getDefaultState();
+        this.render();
+        break;
+    }
+  }
+
+  #collectState() {
+    const fd = new FormData(this.element);
+    const next = getDefaultState();
+
+    next.name = stringValue(fd, "name");
+    next.description = stringValue(fd, "description");
+    next.damage.areaDamage = fd.has("damage.areaDamage");
+    next.damage.material = stringValue(fd, "damage.material");
+    next.damage.sanctification = stringValue(fd, "damage.sanctification");
+    next.damage.label = stringValue(fd, "damage.label");
+    next.damage.extraTraits = csvValue(fd, "damage.extraTraits");
+    next.check.showDC = stringValue(fd, "check.showDC") || "owner";
+    next.check.secret = fd.has("check.secret");
+    next.check.incapacitation = fd.has("check.incapacitation");
+    next.check.immutable = fd.has("check.immutable");
+    next.check.damagingEffect = fd.has("check.damagingEffect");
+    next.check.breathWeapon = fd.has("check.breathWeapon");
+    next.check.extraTraits = csvValue(fd, "check.extraTraits");
+    next.check.extraOptions = csvValue(fd, "check.extraOptions");
+    next.template.type = stringValue(fd, "template.type");
+    next.template.distance = stringValue(fd, "template.distance");
+    next.template.width = stringValue(fd, "template.width");
+    next.template.label = stringValue(fd, "template.label");
+
+    const damageCount = Number(fd.get("damage.count") ?? 0);
+    next.damage.rows = Array.from({ length: damageCount }, (_, index) => ({
+      id: stringValue(fd, `damage.${index}.id`) || foundry.utils.randomID(),
+      formula: stringValue(fd, `damage.${index}.formula`),
+      type: stringValue(fd, `damage.${index}.type`) || "untyped",
+      precision: fd.has(`damage.${index}.precision`),
+      splash: fd.has(`damage.${index}.splash`),
+      persistent: fd.has(`damage.${index}.persistent`),
+      healing: fd.has(`damage.${index}.healing`)
+    }));
+
+    const checkCount = Number(fd.get("check.count") ?? 0);
+    next.check.rows = Array.from({ length: checkCount }, (_, index) => ({
+      id: stringValue(fd, `check.${index}.id`) || foundry.utils.randomID(),
+      type: stringValue(fd, `check.${index}.type`) || "reflex",
+      mode: stringValue(fd, `check.${index}.mode`) || "dc",
+      dc: stringValue(fd, `check.${index}.dc`) || "20",
+      defense: stringValue(fd, `check.${index}.defense`) || "ac",
+      against: stringValue(fd, `check.${index}.against`) || "class-spell",
+      basic: fd.has(`check.${index}.basic`),
+      label: stringValue(fd, `check.${index}.label`)
+    }));
+
+    return next;
+  }
+
+  static #onSubmit(event, form, formData) {
+    event.preventDefault();
+  }
+
+  async #copy() {
+    const content = buildMarkup(this.#collectState());
+
+    const copied = await copyToClipboard(content);
+    if (copied) ui.notifications.info("Скопировано в буфер обмена.");
+    else ui.notifications.warn("Не удалось скопировать автоматически. Текст можно взять из предпросмотра.");
+  }
+
+  async #post() {
+    const content = buildMarkup(this.#collectState());
+    await ChatMessage.create({
+      content,
+      speaker: ChatMessage.getSpeaker()
+    });
+  }
+
+  async #createAction() {
+    const state = this.#collectState();
+    const actor = getTargetActor();
+    if (!actor) {
+      ui.notifications.warn("Выберите свой токен или назначьте персонажа пользователю.");
+      return;
+    }
+
+    if (!actor.isOwner) {
+      ui.notifications.warn(`Нет прав на создание действия у актера "${actor.name}".`);
+      return;
+    }
+
+    const itemData = createActionItemData(state);
+    try {
+      await actor.createEmbeddedDocuments("Item", [itemData]);
+      ui.notifications.info(`Действие "${itemData.name}" создано у ${actor.name}.`);
+    } catch (error) {
+      console.error(`${MODULE_TITLE} | Action creation failed`, error);
+      ui.notifications.error("Не удалось создать действие. Проверь права на актера и тип листа.");
+    }
+  }
+}
+
+function getDefaultState() {
+  return {
+    name: "Огненное дыхание",
+    description: "Существо выдыхает пламя в области.",
+    damage: {
+      rows: [createDamageRow()],
+      areaDamage: true,
+      material: "",
+      sanctification: "",
+      label: "",
+      extraTraits: []
+    },
+    check: {
+      rows: [createCheckRow()],
+      showDC: "owner",
+      secret: false,
+      incapacitation: false,
+      immutable: false,
+      damagingEffect: false,
+      breathWeapon: true,
+      extraTraits: [],
+      extraOptions: []
+    },
+    template: {
+      type: "cone",
+      distance: "30",
+      width: "",
+      label: ""
+    }
+  };
+}
+
+function createDamageRow() {
+  return {
+    id: foundry.utils.randomID(),
+    formula: "6d6",
+    type: "fire",
+    precision: false,
+    splash: false,
+    persistent: false,
+    healing: false
+  };
+}
+
+function createCheckRow() {
+  return {
+    id: foundry.utils.randomID(),
+    type: "reflex",
+    mode: "dc",
+    dc: "20",
+    defense: "ac",
+    against: "class-spell",
+    basic: true,
+    label: ""
+  };
+}
+
+function prepareTemplateState(state) {
+  return {
+    ...state,
+    damage: {
+      ...state.damage,
+      rows: state.damage.rows.map((row) => ({
+        ...row,
+        damageTypes: markSelected(getDamageTypeOptions(), row.type)
+      })),
+      materials: markSelected([{ value: "", label: "Без материала" }, ...getMaterialOptions()], state.damage.material),
+      sanctifications: markSelected([
+        { value: "", label: "Без освящения" },
+        { value: "holy", label: "Святой" },
+        { value: "unholy", label: "Нечестивый" }
+      ], state.damage.sanctification)
+    },
+    check: {
+      ...state.check,
+      rows: state.check.rows.map((row) => ({
+        ...row,
+        saves: markSelected(getSaveOptions(), row.type),
+        skills: markSelected(getSkillOptions(), row.type),
+        modes: markSelected([
+          { value: "dc", label: "DC" },
+          { value: "defense", label: "Против защиты" },
+          { value: "against", label: "Против DC цели" }
+        ], row.mode),
+        defenses: markSelected([
+          { value: "ac", label: "AC" },
+          { value: "fortitude", label: "Стойкость" },
+          { value: "reflex", label: "Рефлекс" },
+          { value: "will", label: "Воля" },
+          { value: "perception", label: "Восприятие" }
+        ], row.defense),
+        againsts: markSelected([
+          { value: "class-dc", label: "Class DC" },
+          { value: "spell-dc", label: "Spell DC" },
+          { value: "class-spell", label: "Class/Spell DC" }
+        ], row.against)
+      })),
+      showDCOptions: markSelected([
+        { value: "owner", label: "Владелец" },
+        { value: "gm", label: "ГМ" },
+        { value: "all", label: "Все" },
+        { value: "none", label: "Никто" }
+      ], state.check.showDC)
+    },
+    template: {
+      ...state.template,
+      types: markSelected([
+        { value: "", label: "Без шаблона" },
+        { value: "cone", label: "Конус" },
+        { value: "burst", label: "Взрыв" },
+        { value: "emanation", label: "Эманация" },
+        { value: "line", label: "Линия" }
+      ], state.template.type)
+    }
+  };
+}
+
+function markSelected(options, selected) {
+  return options.map((option) => ({
+    ...option,
+    selected: option.value === selected
+  }));
+}
+
+function buildMarkup(state) {
+  const blocks = [];
+  if (state.name) blocks.push(`<h3>${escapeHtml(state.name)}</h3>`);
+  if (state.description) blocks.push(`<p>${escapeHtml(state.description)}</p>`);
+
+  const damage = buildDamageLink(state);
+  if (damage) blocks.push(`<p>${damage}</p>`);
+
+  for (const check of state.check.rows) {
+    const link = buildCheckLink(check, state.check);
+    if (link) blocks.push(`<p>${link}</p>`);
+  }
+
+  const template = buildTemplateLink(state.template);
+  if (template) blocks.push(`<p>${template}</p>`);
+
+  return blocks.join("\n");
+}
+
+function createActionItemData(state) {
+  const content = buildMarkup(state);
+  return {
+    name: state.name || "Быстрое действие",
+    type: "action",
+    img: "icons/svg/dice-target.svg",
+    system: {
+      description: {
+        value: content
+      },
+      actionType: {
+        value: "action"
+      },
+      actions: {
+        value: 1
+      },
+      category: "offensive",
+      traits: {
+        value: dedupe([
+          ...state.damage.extraTraits,
+          ...state.check.extraTraits,
+          state.damage.sanctification
+        ])
+      }
+    },
+    flags: {
+      [MODULE_ID]: {
+        createdBy: MODULE_ID
+      }
+    }
+  };
+}
+
+function getTargetActor() {
+  const controlled = canvas.tokens?.controlled
+    ?.map((token) => token.actor)
+    .find((actor) => actor?.isOwner);
+  return controlled ?? game.user.character ?? null;
+}
+
+async function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (error) {
+    console.warn(`${MODULE_TITLE} | Clipboard API failed`, error);
+  }
+
+  return copyToClipboardFallback(text);
+}
+
+function copyToClipboardFallback(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.top = "-1000px";
+  textarea.style.left = "-1000px";
+  document.body.append(textarea);
+  textarea.focus();
+  textarea.select();
+
+  try {
+    return document.execCommand("copy");
+  } catch (error) {
+    console.warn(`${MODULE_TITLE} | Clipboard fallback failed`, error);
+    return false;
+  } finally {
+    textarea.remove();
+  }
+}
+
+function buildDamageLink(state) {
+  const parts = state.damage.rows.flatMap((row) => {
+    const formula = row.formula.trim();
+    if (!formula) return [];
+
+    const innerTraits = [];
+    if (row.precision) innerTraits.push("precision");
+    if (row.splash) innerTraits.push("splash");
+
+    const outerTraits = [];
+    if (row.persistent) outerTraits.push("persistent");
+    if (row.healing) outerTraits.push("healing");
+    if (row.type && row.type !== "untyped") outerTraits.push(row.type);
+
+    let term = formula;
+    if (innerTraits.length) term = `(${term}[${innerTraits.join(",")}])`;
+    if (outerTraits.length) term = `${term}[${outerTraits.join(",")}]`;
+    return [term];
+  });
+
+  if (!parts.length) return "";
+
+  const params = [];
+  const options = [];
+  if (state.damage.areaDamage) options.push("area-damage");
+  if (state.damage.material) options.push(`damage:material:${state.damage.material}`);
+  if (options.length) params.push(`options:${options.join(",")}`);
+
+  const traits = [];
+  if (state.damage.sanctification) traits.push(state.damage.sanctification);
+  traits.push(...state.damage.extraTraits);
+  if (traits.length) params.push(`traits:${dedupe(traits).join(",")}`);
+
+  const suffix = params.length ? `|${params.join("|")}` : "";
+  const label = state.damage.label ? `{${escapeCurlyLabel(state.damage.label)}}` : "";
+  return `@Damage[${parts.join(",")}${suffix}]${label}`;
+}
+
+function buildCheckLink(row, shared) {
+  if (!row.type) return "";
+
+  const params = [row.type];
+  if (row.mode === "defense") params.push(`defense:${row.defense}`);
+  else if (row.mode === "against") params.push(`against:${row.against}`);
+  else params.push(`dc:${row.dc || "20"}`);
+
+  if (row.basic) params.push("basic");
+  if (shared.showDC && shared.showDC !== "owner") params.push(`showDC:${shared.showDC}`);
+  if (shared.immutable) params.push("immutable");
+
+  const traits = [];
+  if (shared.secret) traits.push("secret");
+  if (shared.incapacitation) traits.push("incapacitation");
+  traits.push(...shared.extraTraits);
+  if (traits.length) params.push(`traits:${dedupe(traits).join(",")}`);
+
+  const options = [];
+  if (shared.damagingEffect) options.push("damaging-effect");
+  if (shared.breathWeapon) options.push("action:breath-weapon");
+  options.push(...shared.extraOptions);
+  if (options.length) params.push(`options:${dedupe(options).join(",")}`);
+
+  const label = row.label ? `{${escapeCurlyLabel(row.label)}}` : "";
+  return `@Check[${params.join("|")}]${label}`;
+}
+
+function buildTemplateLink(template) {
+  if (!template.type) return "";
+
+  const params = [`type:${template.type}`, `distance:${template.distance || "5"}`];
+  if (template.type === "line" && template.width) params.push(`width:${template.width}`);
+
+  const label = template.label ? `{${escapeCurlyLabel(template.label)}}` : "";
+  return `@Template[${params.join("|")}]${label}`;
+}
+
+function getDamageTypeOptions() {
+  const configured = game.pf2e?.damageTypes ?? CONFIG.PF2E?.damageTypes ?? {};
+  const preferred = [
+    "untyped",
+    "bludgeoning",
+    "piercing",
+    "slashing",
+    "bleed",
+    "acid",
+    "cold",
+    "electricity",
+    "fire",
+    "force",
+    "sonic",
+    "spirit",
+    "vitality",
+    "void",
+    "mental",
+    "poison"
+  ];
+  const all = dedupe([...preferred, ...Object.keys(configured).sort()]);
+  return all.map((value) => ({ value, label: localize(configured[value] ?? value) }));
+}
+
+function getMaterialOptions() {
+  const configured = CONFIG.PF2E?.materialDamageEffects ?? {};
+  const preferred = ["silver", "cold-iron", "adamantine"];
+  const all = dedupe([...preferred, ...Object.keys(configured).sort()]);
+  return all.map((value) => ({ value, label: localize(configured[value] ?? value) }));
+}
+
+function getSaveOptions() {
+  return [
+    { value: "flat", label: "Чистая проверка" },
+    { value: "perception", label: localize("PF2E.PerceptionLabel") },
+    { value: "fortitude", label: localize(CONFIG.PF2E?.saves?.fortitude ?? "Стойкость") },
+    { value: "reflex", label: localize(CONFIG.PF2E?.saves?.reflex ?? "Рефлекс") },
+    { value: "will", label: localize(CONFIG.PF2E?.saves?.will ?? "Воля") }
+  ];
+}
+
+function getSkillOptions() {
+  return Object.entries(CONFIG.PF2E?.skills ?? {})
+    .sort(([, a], [, b]) => localize(a.label).localeCompare(localize(b.label), game.i18n.lang))
+    .map(([value, data]) => ({ value, label: localize(data.label) }));
+}
+
+function stringValue(formData, key) {
+  return String(formData.get(key) ?? "").trim();
+}
+
+function csvValue(formData, key) {
+  return stringValue(formData, key)
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function dedupe(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function localize(value) {
+  if (!value) return "";
+  return game.i18n.localize(value) || value;
+}
+
+function escapeHtml(value) {
+  const div = document.createElement("div");
+  div.textContent = value;
+  return div.innerHTML;
+}
+
+function escapeCurlyLabel(value) {
+  return value.replace(/[{}]/g, "").trim();
 }

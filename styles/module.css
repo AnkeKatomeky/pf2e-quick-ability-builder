@@ -1,0 +1,401 @@
+.pf2e-qab {
+  --qab-accent: var(--color-warm-2, #9a3412);
+  --qab-accent-strong: var(--color-warm-1, #7c2d12);
+  --qab-accent-contrast: #ffffff;
+  --qab-ink: var(--color-text-primary, #1f1f1f);
+  --qab-muted: var(--color-text-secondary, #5d5d5d);
+  --qab-line: rgba(34, 31, 28, 0.62);
+  --qab-section-line: rgba(34, 31, 28, 0.7);
+  --qab-control-bg: #f8f4ed;
+  --qab-control-border: rgba(34, 31, 28, 0.58);
+  --qab-surface: #ded7cc;
+  --qab-panel: #eee8dd;
+  --qab-row-surface: #c8bcad;
+  --qab-button-fg: #5c1d12;
+  --qab-button-bg: #d7c4ad;
+  --qab-button-hover: #cbb293;
+  --qab-button-border: rgba(34, 31, 28, 0.72);
+  --qab-focus: color-mix(in srgb, var(--qab-accent) 24%, transparent);
+  min-width: 520px;
+  max-width: calc(100vw - 24px);
+  min-height: 420px;
+}
+
+:is(html.theme-dark, body.theme-dark, [data-theme="dark"]) .pf2e-qab,
+.pf2e-qab.theme-dark {
+  --qab-accent: #c99557;
+  --qab-accent-strong: #e0b47a;
+  --qab-accent-contrast: #24170c;
+  --qab-ink: var(--color-text-primary, #f0ece5);
+  --qab-muted: var(--color-text-secondary, #c8bfb4);
+  --qab-line: rgba(255, 255, 255, 0.16);
+  --qab-section-line: rgba(255, 255, 255, 0.18);
+  --qab-control-bg: rgba(0, 0, 0, 0.28);
+  --qab-control-border: rgba(255, 255, 255, 0.24);
+  --qab-surface: rgba(255, 255, 255, 0.075);
+  --qab-panel: rgba(255, 255, 255, 0.035);
+  --qab-row-surface: rgba(255, 255, 255, 0.065);
+  --qab-button-fg: var(--qab-accent-strong);
+  --qab-button-bg: rgba(255, 255, 255, 0.09);
+  --qab-button-hover: rgba(201, 149, 87, 0.18);
+  --qab-button-border: var(--qab-control-border);
+  --qab-focus: rgba(201, 149, 87, 0.28);
+}
+
+.pf2e-qab * {
+  box-sizing: border-box;
+}
+
+.pf2e-qab .window-content {
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+
+.qab-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--qab-ink);
+  background: var(--qab-panel);
+}
+
+.qab-panel {
+  min-width: 0;
+  padding: 18px;
+}
+
+.qab-panel--main {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+}
+
+.qab-preview-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  border-left: 1px solid var(--qab-line);
+  background: color-mix(in srgb, var(--qab-panel) 88%, black 4%);
+}
+
+.qab-hero,
+.qab-section-title,
+.qab-preview-header,
+.qab-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.qab-hero h2,
+.qab-section h3,
+.qab-preview-header h3 {
+  margin: 0;
+  line-height: 1.15;
+}
+
+.qab-kicker {
+  margin: 0 0 4px;
+  color: var(--qab-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.qab-section {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--qab-section-line);
+  border-radius: 8px;
+  background: var(--qab-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.qab-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.pf2e-qab .qab-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(110px, 0.55fr) minmax(150px, 1fr);
+  gap: 10px;
+  padding: 12px 52px 12px 12px;
+  border: 2px solid var(--qab-line) !important;
+  border-radius: 8px !important;
+  background: var(--qab-row-surface) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+}
+
+.qab-row--check {
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+}
+
+.qab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.qab-section label,
+.qab-row label {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.qab-section label > span,
+.qab-row label > span {
+  color: var(--qab-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.qab-field--formula input {
+  font-family: var(--font-monospace, monospace);
+}
+
+.qab-checks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 14px;
+  grid-column: 1 / -1;
+}
+
+.pf2e-qab .qab-checks label,
+.pf2e-qab .qab-toggle,
+.pf2e-qab .qab-toggle--inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: start;
+  grid-template-columns: none;
+  gap: 6px;
+  min-width: 0;
+  min-height: 28px;
+  width: auto;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.pf2e-qab .qab-toggle--inline {
+  min-height: 56px;
+}
+
+.pf2e-qab .qab-checks label > span,
+.pf2e-qab .qab-toggle > span {
+  display: inline-block;
+  color: var(--qab-ink);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.qab-toggle--inline {
+  align-self: stretch;
+  padding-top: 18px;
+}
+
+.pf2e-qab .qab-checks input[type="checkbox"],
+.pf2e-qab .qab-toggle input[type="checkbox"] {
+  appearance: auto;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  margin: 0;
+  position: static;
+  inset: auto;
+  vertical-align: middle;
+  accent-color: var(--qab-accent-strong);
+}
+
+.pf2e-qab .qab-checks input[type="checkbox"]::before,
+.pf2e-qab .qab-checks input[type="checkbox"]::after,
+.pf2e-qab .qab-toggle input[type="checkbox"]::before,
+.pf2e-qab .qab-toggle input[type="checkbox"]::after {
+  content: none;
+  display: none;
+}
+
+.pf2e-qab .qab-checks input[type="checkbox"]:focus,
+.pf2e-qab .qab-toggle input[type="checkbox"]:focus {
+  box-shadow: 0 0 0 2px var(--qab-focus);
+  outline: none;
+}
+
+.pf2e-qab .qab-checks--wide {
+  position: relative;
+  padding: 8px;
+  border: 1px solid var(--qab-section-line);
+  border-radius: 6px;
+  background: var(--qab-row-surface);
+}
+
+.pf2e-qab .qab-checks--wide label {
+  position: relative;
+}
+
+.qab-row-remove {
+  position: absolute;
+  top: 30px;
+  right: 10px;
+}
+
+.qab-hidden {
+  display: none !important;
+}
+
+.pf2e-qab button {
+  width: auto;
+  min-height: 32px;
+  border: 2px solid var(--qab-button-border) !important;
+  border-radius: 6px !important;
+  background: var(--qab-button-bg) !important;
+  color: var(--qab-button-fg) !important;
+  font-weight: 700;
+}
+
+.pf2e-qab button:hover,
+.pf2e-qab button:focus {
+  background: var(--qab-button-hover) !important;
+  box-shadow: 0 0 0 2px var(--qab-focus) !important;
+}
+
+.pf2e-qab .qab-primary {
+  border-color: var(--qab-accent-strong) !important;
+  background: var(--qab-accent) !important;
+  color: var(--qab-accent-contrast) !important;
+}
+
+.pf2e-qab .qab-primary:hover,
+.pf2e-qab .qab-primary:focus {
+  background: var(--qab-accent-strong) !important;
+}
+
+.qab-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  min-width: 32px;
+  padding: 0;
+}
+
+.qab-preview-header {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+.qab-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-content: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+.qab-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  white-space: normal;
+}
+
+.qab-preview-panel pre {
+  min-height: 360px;
+  max-height: none;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--qab-line);
+  border-radius: 8px;
+  background: var(--qab-surface);
+  color: var(--qab-ink);
+  font-family: var(--font-monospace, monospace);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.pf2e-qab input,
+.pf2e-qab select,
+.pf2e-qab textarea {
+  width: 100%;
+  min-height: 32px;
+  border: 1px solid var(--qab-control-border);
+  border-radius: 6px;
+  background: var(--qab-control-bg);
+  color: var(--qab-ink);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.pf2e-qab textarea {
+  resize: vertical;
+}
+
+.pf2e-qab input:focus,
+.pf2e-qab select:focus,
+.pf2e-qab textarea:focus {
+  border-color: var(--qab-accent-strong);
+  box-shadow: 0 0 0 2px var(--qab-focus), inset 0 1px 2px rgba(0, 0, 0, 0.08);
+  outline: none;
+}
+
+@media (max-width: 900px) {
+  .pf2e-qab {
+    min-width: 0;
+  }
+
+  .qab-shell {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: auto;
+  }
+
+  .qab-preview-panel {
+    border-top: 1px solid var(--qab-line);
+    border-left: 0;
+  }
+
+  .qab-row,
+  .qab-row--check,
+  .qab-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1120px) {
+  .qab-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .qab-preview-panel {
+    border-top: 1px solid var(--qab-line);
+    border-left: 0;
+  }
+
+  .qab-actions {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}

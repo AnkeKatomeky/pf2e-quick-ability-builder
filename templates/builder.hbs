@@ -1,0 +1,241 @@
+<section class="qab-shell">
+  <aside class="qab-panel qab-panel--main">
+    <header class="qab-hero">
+      <div>
+        <p class="qab-kicker">PF2e inline automation</p>
+        <h2>Конструктор кнопок</h2>
+      </div>
+      <button type="button" class="qab-icon-button" data-qab-action="reset" title="Сбросить форму">
+        <i class="fa-solid fa-rotate-left"></i>
+      </button>
+    </header>
+
+    <div class="qab-section">
+      <label>
+        <span>Название</span>
+        <input type="text" name="name" value="{{state.name}}" placeholder="Например: Огненное дыхание">
+      </label>
+      <label>
+        <span>Описание</span>
+        <textarea name="description" rows="3" placeholder="Короткий текст перед кнопками">{{state.description}}</textarea>
+      </label>
+    </div>
+
+    <div class="qab-section">
+      <div class="qab-section-title">
+        <h3>@Damage</h3>
+        <button type="button" data-qab-action="add-damage">
+          <i class="fa-solid fa-plus"></i>
+          Добавить урон
+        </button>
+      </div>
+
+      <input type="hidden" name="damage.count" value="{{state.damage.rows.length}}">
+      <div class="qab-stack">
+        {{#each state.damage.rows as |row index|}}
+          <article class="qab-row" data-row-id="{{row.id}}">
+            <input type="hidden" name="damage.{{index}}.id" value="{{row.id}}">
+            <label class="qab-field--formula">
+              <span>Формула</span>
+              <input type="text" name="damage.{{index}}.formula" value="{{row.formula}}" placeholder="6d6">
+            </label>
+            <label>
+              <span>Тип</span>
+              <select name="damage.{{index}}.type">
+                {{#each row.damageTypes as |option|}}
+                  <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
+                {{/each}}
+              </select>
+            </label>
+            <div class="qab-checks">
+              <label><input type="checkbox" name="damage.{{index}}.precision" {{#if row.precision}}checked{{/if}}><span>Точный</span></label>
+              <label><input type="checkbox" name="damage.{{index}}.splash" {{#if row.splash}}checked{{/if}}><span>Брызги</span></label>
+              <label><input type="checkbox" name="damage.{{index}}.persistent" {{#if row.persistent}}checked{{/if}}><span>Продолжительный</span></label>
+              <label><input type="checkbox" name="damage.{{index}}.healing" {{#if row.healing}}checked{{/if}}><span>Исцеление</span></label>
+            </div>
+            <button type="button" class="qab-icon-button qab-row-remove" data-qab-action="remove-damage" title="Удалить часть урона">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </article>
+        {{/each}}
+      </div>
+
+      <div class="qab-grid">
+        <label>
+          <span>Материал</span>
+          <select name="damage.material">
+            {{#each state.damage.materials as |option|}}
+              <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
+            {{/each}}
+          </select>
+        </label>
+        <label>
+          <span>Освящение</span>
+          <select name="damage.sanctification">
+            {{#each state.damage.sanctifications as |option|}}
+              <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
+            {{/each}}
+          </select>
+        </label>
+        <label>
+          <span>Доп. traits</span>
+          <input type="text" name="damage.extraTraits" value="{{state.damage.extraTraits}}" placeholder="fire,evocation">
+        </label>
+        <label>
+          <span>Метка кнопки</span>
+          <input type="text" name="damage.label" value="{{state.damage.label}}" placeholder="например: Урон огнем">
+        </label>
+      </div>
+      <label class="qab-toggle">
+        <input type="checkbox" name="damage.areaDamage" {{#if state.damage.areaDamage}}checked{{/if}}>
+        <span>Добавить option area-damage</span>
+      </label>
+    </div>
+
+    <div class="qab-section">
+      <div class="qab-section-title">
+        <h3>@Check</h3>
+        <button type="button" data-qab-action="add-check">
+          <i class="fa-solid fa-plus"></i>
+          Добавить проверку
+        </button>
+      </div>
+
+      <input type="hidden" name="check.count" value="{{state.check.rows.length}}">
+      <div class="qab-stack">
+        {{#each state.check.rows as |row index|}}
+          <article class="qab-row qab-row--check" data-row-id="{{row.id}}">
+            <input type="hidden" name="check.{{index}}.id" value="{{row.id}}">
+            <label>
+              <span>Тип</span>
+              <select name="check.{{index}}.type">
+                {{#each row.saves as |option|}}
+                  <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
+                {{/each}}
+                <optgroup label="Навыки">
+                  {{#each row.skills as |option|}}
+                    <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
+                  {{/each}}
+                </optgroup>
+              </select>
+            </label>
+            <label>
+              <span>Режим</span>
+              <select name="check.{{index}}.mode" data-qab-check-mode>
+                {{#each row.modes as |option|}}
+                  <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
+                {{/each}}
+              </select>
+            </label>
+            <label class="qab-dc-field">
+              <span>DC</span>
+              <input type="number" name="check.{{index}}.dc" value="{{row.dc}}" min="0">
+            </label>
+            <label class="qab-defense-field">
+              <span>Защита</span>
+              <select name="check.{{index}}.defense">
+                {{#each row.defenses as |option|}}
+                  <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
+                {{/each}}
+              </select>
+            </label>
+            <label class="qab-against-field">
+              <span>Against</span>
+              <select name="check.{{index}}.against">
+                {{#each row.againsts as |option|}}
+                  <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
+                {{/each}}
+              </select>
+            </label>
+            <label>
+              <span>Метка</span>
+              <input type="text" name="check.{{index}}.label" value="{{row.label}}" placeholder="необязательно">
+            </label>
+            <label class="qab-toggle qab-toggle--inline">
+              <input type="checkbox" name="check.{{index}}.basic" {{#if row.basic}}checked{{/if}}>
+              <span>basic</span>
+            </label>
+            <button type="button" class="qab-icon-button qab-row-remove" data-qab-action="remove-check" title="Удалить проверку">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </article>
+        {{/each}}
+      </div>
+
+      <div class="qab-grid">
+        <label>
+          <span>Показывать DC</span>
+          <select name="check.showDC">
+            {{#each state.check.showDCOptions as |option|}}
+              <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
+            {{/each}}
+          </select>
+        </label>
+        <label>
+          <span>Доп. traits</span>
+          <input type="text" name="check.extraTraits" value="{{state.check.extraTraits}}" placeholder="poison,death">
+        </label>
+        <label>
+          <span>Доп. options</span>
+          <input type="text" name="check.extraOptions" value="{{state.check.extraOptions}}" placeholder="action:custom-action">
+        </label>
+      </div>
+      <div class="qab-checks qab-checks--wide">
+        <label><input type="checkbox" name="check.secret" {{#if state.check.secret}}checked{{/if}}><span>secret</span></label>
+        <label><input type="checkbox" name="check.incapacitation" {{#if state.check.incapacitation}}checked{{/if}}><span>incapacitation</span></label>
+        <label><input type="checkbox" name="check.immutable" {{#if state.check.immutable}}checked{{/if}}><span>immutable</span></label>
+        <label><input type="checkbox" name="check.damagingEffect" {{#if state.check.damagingEffect}}checked{{/if}}><span>damaging-effect</span></label>
+        <label><input type="checkbox" name="check.breathWeapon" {{#if state.check.breathWeapon}}checked{{/if}}><span>action:breath-weapon</span></label>
+      </div>
+    </div>
+
+    <div class="qab-section">
+      <div class="qab-section-title">
+        <h3>@Template</h3>
+      </div>
+      <div class="qab-grid">
+        <label>
+          <span>Форма</span>
+          <select name="template.type">
+            {{#each state.template.types as |option|}}
+              <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
+            {{/each}}
+          </select>
+        </label>
+        <label>
+          <span>Дистанция, футы</span>
+          <input type="number" name="template.distance" value="{{state.template.distance}}" min="0">
+        </label>
+        <label>
+          <span>Ширина линии</span>
+          <input type="number" name="template.width" value="{{state.template.width}}" min="0" placeholder="обычно пусто">
+        </label>
+        <label>
+          <span>Метка</span>
+          <input type="text" name="template.label" value="{{state.template.label}}" placeholder="например: 30 футов">
+        </label>
+      </div>
+    </div>
+  </aside>
+
+  <aside class="qab-panel qab-preview-panel">
+    <div class="qab-preview-header">
+      <h3>Предпросмотр</h3>
+      <div class="qab-actions">
+        <button type="button" data-qab-action="copy" title="Копировать">
+          <i class="fa-solid fa-copy"></i>
+          <span>Копировать</span>
+        </button>
+        <button type="button" class="qab-primary" data-qab-action="post" title="Отправить в чат">
+          <i class="fa-solid fa-message"></i>
+          <span>В чат</span>
+        </button>
+        <button type="button" class="qab-primary" data-qab-action="create-action" title="Создать действие у текущего актера">
+          <i class="fa-solid fa-person-rays"></i>
+          <span>Создать действие</span>
+        </button>
+      </div>
+    </div>
+    <pre data-qab-preview>{{preview}}</pre>
+  </aside>
+</section>
