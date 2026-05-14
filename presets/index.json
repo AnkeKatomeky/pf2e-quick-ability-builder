@@ -1,0 +1,7 @@
+[
+  { "id": "dragon-breath", "file": "dragon-breath.json", "group": "builtin" },
+  { "id": "frostbite", "file": "frostbite.json", "group": "builtin" },
+  { "id": "demoralize", "file": "demoralize.json", "group": "builtin" },
+  { "id": "harm", "file": "harm.json", "group": "builtin" },
+  { "id": "heal", "file": "heal.json", "group": "builtin" }
+]

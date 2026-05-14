@@ -1,0 +1,43 @@
+{
+  "name": "Demoralize",
+  "description": "You threaten or intimidate a foe to shake their resolve.",
+  "damage": {
+    "rows": [],
+    "areaDamage": false,
+    "material": "",
+    "sanctification": "",
+    "label": "",
+    "extraTraits": []
+  },
+  "check": {
+    "rows": [
+      { "type": "intimidation", "mode": "dc", "dc": "0", "defense": "will", "against": "class-spell", "basic": false, "label": "Demoralize" }
+    ],
+    "showDC": "gm",
+    "secret": false,
+    "incapacitation": false,
+    "immutable": false,
+    "damagingEffect": false,
+    "breathWeapon": false,
+    "extraTraits": ["emotion", "fear", "mental"],
+    "extraOptions": []
+  },
+  "template": {
+    "type": "emanation",
+    "distance": "30",
+    "width": "",
+    "label": ""
+  },
+  "action": {
+    "actions": "1",
+    "category": "utility",
+    "frequencyPer": "",
+    "frequencyMax": "1"
+  },
+  "effects": {
+    "critSuccess": "",
+    "success": "",
+    "failure": "",
+    "critFailure": ""
+  }
+}

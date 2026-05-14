@@ -1,0 +1,120 @@
+{
+  "PF2E_QUICK_ABILITY_BUILDER": {
+    "Title": "PF2e Quick Ability Builder",
+    "Keybinding": {
+      "Name": "PF2e Quick Ability Builder: open constructor",
+      "Hint": "Opens the window for quickly building @Damage, @Check and @Template inline buttons."
+    },
+    "Defaults": {
+      "Name": "Dragon Breath",
+      "Description": "The creature exhales flame in an area.",
+      "ActionName": "Quick Action"
+    },
+    "UI": {
+      "Kicker": "PF2e inline automation",
+      "Heading": "Button Builder",
+      "Name": "Name",
+      "NamePlaceholder": "e.g. Dragon Breath",
+      "Description": "Description",
+      "DescriptionPlaceholder": "Short description text before the buttons"
+    },
+    "Section": {
+      "Damage": "@Damage",
+      "Check": "@Check",
+      "Template": "@Template"
+    },
+    "Damage": {
+      "AddRow": "Add damage",
+      "Formula": "Formula",
+      "FormulaPlaceholder": "6d6",
+      "Type": "Type",
+      "Precision": "Precision",
+      "Splash": "Splash",
+      "Persistent": "Persistent",
+      "Healing": "Healing",
+      "Material": "Material",
+      "MaterialNone": "No material",
+      "Sanctification": "Sanctification",
+      "SanctificationNone": "No sanctification",
+      "SanctificationHoly": "Holy",
+      "SanctificationUnholy": "Unholy",
+      "ExtraTraits": "Extra traits",
+      "ExtraTraitsPlaceholder": "fire,evocation",
+      "Label": "Button label",
+      "LabelPlaceholder": "e.g. Fire damage",
+      "AreaDamage": "Add area-damage option"
+    },
+    "Check": {
+      "AddRow": "Add check",
+      "Type": "Type",
+      "Skills": "Skills",
+      "Mode": "Mode",
+      "ModeDC": "DC",
+      "ModeDefense": "vs Defense",
+      "ModeAgainst": "vs Target DC",
+      "DC": "DC",
+      "Defense": "Defense",
+      "Against": "Against",
+      "Label": "Label",
+      "LabelPlaceholder": "optional",
+      "Basic": "basic",
+      "ShowDC": "Show DC",
+      "ShowDCOwner": "Owner",
+      "ShowDCGM": "GM",
+      "ShowDCAll": "All",
+      "ShowDCNone": "None",
+      "ExtraTraits": "Extra traits",
+      "ExtraTraitsPlaceholder": "poison,death",
+      "ExtraOptions": "Extra options",
+      "ExtraOptionsPlaceholder": "action:custom-action",
+      "Secret": "secret",
+      "Incapacitation": "incapacitation",
+      "Immutable": "immutable",
+      "DamagingEffect": "damaging-effect",
+      "BreathWeapon": "action:breath-weapon"
+    },
+    "Template": {
+      "Shape": "Shape",
+      "ShapeNone": "No template",
+      "ShapeCone": "Cone",
+      "ShapeBurst": "Burst",
+      "ShapeEmanation": "Emanation",
+      "ShapeLine": "Line",
+      "Distance": "Distance, ft",
+      "Width": "Line width",
+      "WidthPlaceholder": "usually empty",
+      "Label": "Label",
+      "LabelPlaceholder": "e.g. 30 ft cone"
+    },
+    "Save": {
+      "Flat": "Flat check"
+    },
+    "Against": {
+      "ClassDC": "Class DC",
+      "SpellDC": "Spell DC",
+      "ClassSpellDC": "Class/Spell DC"
+    },
+    "Preview": {
+      "Heading": "Preview",
+      "Copy": "Copy",
+      "Post": "Post to chat",
+      "CreateAction": "Create action"
+    },
+    "Tooltip": {
+      "Reset": "Reset form",
+      "RemoveDamage": "Remove damage part",
+      "RemoveCheck": "Remove check",
+      "Copy": "Copy",
+      "Post": "Send to chat",
+      "CreateAction": "Create action on current actor"
+    },
+    "Notification": {
+      "Copied": "Copied to clipboard.",
+      "CopyFailed": "Could not copy automatically. You can take the text from the preview.",
+      "SelectToken": "Select your token or assign a character to the user.",
+      "NoPermission": "No permission to create an action on actor \"{actor}\".",
+      "ActionCreated": "Action \"{name}\" created on {actor}.",
+      "ActionFailed": "Could not create action. Check permissions and sheet type."
+    }
+  }
+}

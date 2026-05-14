@@ -1,0 +1,43 @@
+{
+  "name": "Heal",
+  "description": "Healing energy restores a creature's wounds.",
+  "damage": {
+    "rows": [
+      { "formula": "1d8", "type": "untyped", "precision": false, "splash": false, "persistent": false, "healing": true }
+    ],
+    "areaDamage": false,
+    "material": "",
+    "sanctification": "holy",
+    "label": "Healing per rank",
+    "extraTraits": ["healing", "necromancy"]
+  },
+  "check": {
+    "rows": [],
+    "showDC": "owner",
+    "secret": false,
+    "incapacitation": false,
+    "immutable": false,
+    "damagingEffect": false,
+    "breathWeapon": false,
+    "extraTraits": [],
+    "extraOptions": []
+  },
+  "template": {
+    "type": "",
+    "distance": "30",
+    "width": "",
+    "label": ""
+  },
+  "action": {
+    "actions": "1",
+    "category": "defensive",
+    "frequencyPer": "",
+    "frequencyMax": "1"
+  },
+  "effects": {
+    "critSuccess": "",
+    "success": "",
+    "failure": "",
+    "critFailure": ""
+  }
+}

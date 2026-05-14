@@ -1,0 +1,45 @@
+{
+  "name": "Harm",
+  "description": "You channel negative energy to damage a living creature.",
+  "damage": {
+    "rows": [
+      { "formula": "1d8", "type": "void", "precision": false, "splash": false, "persistent": false, "healing": false }
+    ],
+    "areaDamage": false,
+    "material": "",
+    "sanctification": "",
+    "label": "Void damage per rank",
+    "extraTraits": ["void", "necromancy"]
+  },
+  "check": {
+    "rows": [
+      { "type": "fortitude", "mode": "dc", "dc": "0", "defense": "ac", "against": "class-spell", "basic": true, "label": "" }
+    ],
+    "showDC": "owner",
+    "secret": false,
+    "incapacitation": false,
+    "immutable": false,
+    "damagingEffect": false,
+    "breathWeapon": false,
+    "extraTraits": [],
+    "extraOptions": []
+  },
+  "template": {
+    "type": "",
+    "distance": "30",
+    "width": "",
+    "label": ""
+  },
+  "action": {
+    "actions": "1",
+    "category": "offensive",
+    "frequencyPer": "",
+    "frequencyMax": "1"
+  },
+  "effects": {
+    "critSuccess": "",
+    "success": "",
+    "failure": "",
+    "critFailure": ""
+  }
+}

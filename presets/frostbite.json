@@ -1,0 +1,45 @@
+{
+  "name": "Frostbite",
+  "description": "Rime crystals and bitter cold build up on the target, dealing cold damage and potentially slowing them.",
+  "damage": {
+    "rows": [
+      { "formula": "2d6", "type": "cold", "precision": false, "splash": false, "persistent": true, "healing": false }
+    ],
+    "areaDamage": false,
+    "material": "",
+    "sanctification": "",
+    "label": "Cold damage",
+    "extraTraits": ["cold", "evocation"]
+  },
+  "check": {
+    "rows": [
+      { "type": "fortitude", "mode": "dc", "dc": "21", "defense": "ac", "against": "class-spell", "basic": true, "label": "" }
+    ],
+    "showDC": "owner",
+    "secret": false,
+    "incapacitation": false,
+    "immutable": false,
+    "damagingEffect": false,
+    "breathWeapon": false,
+    "extraTraits": [],
+    "extraOptions": []
+  },
+  "template": {
+    "type": "",
+    "distance": "30",
+    "width": "",
+    "label": ""
+  },
+  "action": {
+    "actions": "2",
+    "category": "offensive",
+    "frequencyPer": "",
+    "frequencyMax": "1"
+  },
+  "effects": {
+    "critSuccess": "",
+    "success": "",
+    "failure": "",
+    "critFailure": ""
+  }
+}

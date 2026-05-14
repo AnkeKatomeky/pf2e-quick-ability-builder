@@ -2,45 +2,112 @@
   <aside class="qab-panel qab-panel--main">
     <header class="qab-hero">
       <div>
-        <p class="qab-kicker">PF2e inline automation</p>
-        <h2>Конструктор кнопок</h2>
+        <p class="qab-kicker">{{localize "PF2E_QUICK_ABILITY_BUILDER.UI.Kicker"}}</p>
+        <h2>{{localize "PF2E_QUICK_ABILITY_BUILDER.UI.Heading"}}</h2>
       </div>
-      <button type="button" class="qab-icon-button" data-qab-action="reset" title="Сбросить форму">
-        <i class="fa-solid fa-rotate-left"></i>
-      </button>
+      <div class="qab-hero-actions">
+        <button type="button" class="qab-icon-button" data-qab-action="reset" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.Tooltip.Reset"}}">
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+      </div>
     </header>
 
-    <div class="qab-section">
-      <label>
-        <span>Название</span>
-        <input type="text" name="name" value="{{state.name}}" placeholder="Например: Огненное дыхание">
+    <div class="qab-preset-bar">
+      <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.PresetSelect"}}">
+        <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Preset.Label"}}</span>
+        <select name="preset" data-qab-action="preset">
+          <option value="">{{localize "PF2E_QUICK_ABILITY_BUILDER.Preset.Default"}}</option>
+          {{#if presets.length}}
+            <optgroup label="{{localize "PF2E_QUICK_ABILITY_BUILDER.Preset.BuiltinLabel"}}">
+              {{#each presets}}
+                {{#if (eq this.group "builtin")}}
+                  <option value="{{this.id}}">{{this.name}}</option>
+                {{/if}}
+              {{/each}}
+            </optgroup>
+            <optgroup label="{{localize "PF2E_QUICK_ABILITY_BUILDER.Preset.CustomLabel"}}">
+              {{#each presets}}
+                {{#if (eq this.group "custom")}}
+                  <option value="{{this.id}}">{{this.name}}</option>
+                {{/if}}
+              {{/each}}
+            </optgroup>
+          {{/if}}
+        </select>
       </label>
-      <label>
-        <span>Описание</span>
-        <textarea name="description" rows="3" placeholder="Короткий текст перед кнопками">{{state.description}}</textarea>
+    </div>
+
+    <div class="qab-section">
+      <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.Name"}}">
+        <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.UI.Name"}}</span>
+        <input type="text" name="name" value="{{state.name}}" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.UI.NamePlaceholder"}}">
+      </label>
+      <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.Description"}}">
+        <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.UI.Description"}}</span>
+        <textarea name="description" rows="3" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.UI.DescriptionPlaceholder"}}">{{state.description}}</textarea>
       </label>
     </div>
 
     <div class="qab-section">
       <div class="qab-section-title">
-        <h3>@Damage</h3>
-        <button type="button" data-qab-action="add-damage">
+        <h3><i class="fa-solid fa-gear"></i> {{localize "PF2E_QUICK_ABILITY_BUILDER.Action.Header"}}</h3>
+      </div>
+      <div class="qab-grid">
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.ActionActions"}}">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Action.Actions"}}</span>
+          <select name="action.actions">
+            <option value="1" {{#if (eq state.action.actions "1")}}selected{{/if}}>{{localize "PF2E_QUICK_ABILITY_BUILDER.Action.Actions1"}}</option>
+            <option value="2" {{#if (eq state.action.actions "2")}}selected{{/if}}>{{localize "PF2E_QUICK_ABILITY_BUILDER.Action.Actions2"}}</option>
+            <option value="3" {{#if (eq state.action.actions "3")}}selected{{/if}}>{{localize "PF2E_QUICK_ABILITY_BUILDER.Action.Actions3"}}</option>
+            <option value="free" {{#if (eq state.action.actions "free")}}selected{{/if}}>{{localize "PF2E_QUICK_ABILITY_BUILDER.Action.Actions0"}}</option>
+            <option value="reaction" {{#if (eq state.action.actions "reaction")}}selected{{/if}}>{{localize "PF2E_QUICK_ABILITY_BUILDER.Action.ActionsReaction"}}</option>
+            <option value="passive" {{#if (eq state.action.actions "passive")}}selected{{/if}}>{{localize "PF2E_QUICK_ABILITY_BUILDER.Action.ActionsPassive"}}</option>
+          </select>
+        </label>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.ActionCategory"}}">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Action.Category"}}</span>
+          <select name="action.category">
+            <option value="offensive" {{#if (eq state.action.category "offensive")}}selected{{/if}}>{{localize "PF2E_QUICK_ABILITY_BUILDER.Action.CategoryOffensive"}}</option>
+            <option value="defensive" {{#if (eq state.action.category "defensive")}}selected{{/if}}>{{localize "PF2E_QUICK_ABILITY_BUILDER.Action.CategoryDefensive"}}</option>
+            <option value="utility" {{#if (eq state.action.category "utility")}}selected{{/if}}>{{localize "PF2E_QUICK_ABILITY_BUILDER.Action.CategoryUtility"}}</option>
+            <option value="interaction" {{#if (eq state.action.category "interaction")}}selected{{/if}}>{{localize "PF2E_QUICK_ABILITY_BUILDER.Action.CategoryInteraction"}}</option>
+          </select>
+        </label>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.ActionFrequency"}}">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Action.Frequency"}}</span>
+          <select name="action.frequencyPer" data-qab-frequency>
+            {{#each state.action.frequencyOptions}}
+            <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+            {{/each}}
+          </select>
+        </label>
+        <label class="qab-frequency-max" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.ActionFrequencyUses"}}" data-qab-frequency-max>
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Action.FrequencyUses"}}</span>
+          <input type="number" name="action.frequencyMax" value="{{state.action.frequencyMax}}" min="1" placeholder="1">
+        </label>
+      </div>
+    </div>
+
+    <div class="qab-section">
+      <div class="qab-section-title">
+        <h3>{{localize "PF2E_QUICK_ABILITY_BUILDER.Section.Damage"}}</h3>
+        <button type="button" data-qab-action="add-damage" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.Tooltip.AddDamage"}}">
           <i class="fa-solid fa-plus"></i>
-          Добавить урон
+          {{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.AddRow"}}
         </button>
       </div>
 
       <input type="hidden" name="damage.count" value="{{state.damage.rows.length}}">
       <div class="qab-stack">
         {{#each state.damage.rows as |row index|}}
-          <article class="qab-row" data-row-id="{{row.id}}">
+          <article class="qab-row qab-row--damage" data-row-id="{{row.id}}">
             <input type="hidden" name="damage.{{index}}.id" value="{{row.id}}">
-            <label class="qab-field--formula">
-              <span>Формула</span>
-              <input type="text" name="damage.{{index}}.formula" value="{{row.formula}}" placeholder="6d6">
+            <label class="qab-field--formula" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.DamageFormula"}}">
+              <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.Formula"}}</span>
+              <input type="text" name="damage.{{index}}.formula" value="{{row.formula}}" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.FormulaPlaceholder"}}">
             </label>
-            <label>
-              <span>Тип</span>
+            <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.DamageType"}}">
+              <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.Type"}}</span>
               <select name="damage.{{index}}.type">
                 {{#each row.damageTypes as |option|}}
                   <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
@@ -48,12 +115,12 @@
               </select>
             </label>
             <div class="qab-checks">
-              <label><input type="checkbox" name="damage.{{index}}.precision" {{#if row.precision}}checked{{/if}}><span>Точный</span></label>
-              <label><input type="checkbox" name="damage.{{index}}.splash" {{#if row.splash}}checked{{/if}}><span>Брызги</span></label>
-              <label><input type="checkbox" name="damage.{{index}}.persistent" {{#if row.persistent}}checked{{/if}}><span>Продолжительный</span></label>
-              <label><input type="checkbox" name="damage.{{index}}.healing" {{#if row.healing}}checked{{/if}}><span>Исцеление</span></label>
+              <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.DamagePrecision"}}"><input type="checkbox" name="damage.{{index}}.precision" {{#if row.precision}}checked{{/if}}><span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.Precision"}}</span></label>
+              <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.DamageSplash"}}"><input type="checkbox" name="damage.{{index}}.splash" {{#if row.splash}}checked{{/if}}><span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.Splash"}}</span></label>
+              <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.DamagePersistent"}}"><input type="checkbox" name="damage.{{index}}.persistent" {{#if row.persistent}}checked{{/if}}><span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.Persistent"}}</span></label>
+              <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.DamageHealing"}}"><input type="checkbox" name="damage.{{index}}.healing" {{#if row.healing}}checked{{/if}}><span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.Healing"}}</span></label>
             </div>
-            <button type="button" class="qab-icon-button qab-row-remove" data-qab-action="remove-damage" title="Удалить часть урона">
+            <button type="button" class="qab-icon-button qab-row-remove" data-qab-action="remove-damage" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.Tooltip.RemoveDamage"}}">
               <i class="fa-solid fa-trash"></i>
             </button>
           </article>
@@ -61,43 +128,43 @@
       </div>
 
       <div class="qab-grid">
-        <label>
-          <span>Материал</span>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.DamageMaterial"}}">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.Material"}}</span>
           <select name="damage.material">
             {{#each state.damage.materials as |option|}}
               <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
             {{/each}}
           </select>
         </label>
-        <label>
-          <span>Освящение</span>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.DamageSanctification"}}">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.Sanctification"}}</span>
           <select name="damage.sanctification">
             {{#each state.damage.sanctifications as |option|}}
               <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
             {{/each}}
           </select>
         </label>
-        <label>
-          <span>Доп. traits</span>
-          <input type="text" name="damage.extraTraits" value="{{state.damage.extraTraits}}" placeholder="fire,evocation">
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.DamageExtraTraits"}}">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.ExtraTraits"}}</span>
+          <input type="text" name="damage.extraTraits" value="{{state.damage.extraTraits}}" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.ExtraTraitsPlaceholder"}}">
         </label>
-        <label>
-          <span>Метка кнопки</span>
-          <input type="text" name="damage.label" value="{{state.damage.label}}" placeholder="например: Урон огнем">
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.DamageLabel"}}">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.Label"}}</span>
+          <input type="text" name="damage.label" value="{{state.damage.label}}" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.LabelPlaceholder"}}">
         </label>
       </div>
-      <label class="qab-toggle">
+      <label class="qab-toggle" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.DamageAreaDamage"}}">
         <input type="checkbox" name="damage.areaDamage" {{#if state.damage.areaDamage}}checked{{/if}}>
-        <span>Добавить option area-damage</span>
+        <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Damage.AreaDamage"}}</span>
       </label>
     </div>
 
     <div class="qab-section">
       <div class="qab-section-title">
-        <h3>@Check</h3>
-        <button type="button" data-qab-action="add-check">
+        <h3>{{localize "PF2E_QUICK_ABILITY_BUILDER.Section.Check"}}</h3>
+        <button type="button" data-qab-action="add-check" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.Tooltip.AddCheck"}}">
           <i class="fa-solid fa-plus"></i>
-          Добавить проверку
+          {{localize "PF2E_QUICK_ABILITY_BUILDER.Check.AddRow"}}
         </button>
       </div>
 
@@ -106,56 +173,56 @@
         {{#each state.check.rows as |row index|}}
           <article class="qab-row qab-row--check" data-row-id="{{row.id}}">
             <input type="hidden" name="check.{{index}}.id" value="{{row.id}}">
-            <label>
-              <span>Тип</span>
+            <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckType"}}">
+              <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.Type"}}</span>
               <select name="check.{{index}}.type">
                 {{#each row.saves as |option|}}
                   <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
                 {{/each}}
-                <optgroup label="Навыки">
+                <optgroup label="{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.Skills"}}">
                   {{#each row.skills as |option|}}
                     <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
                   {{/each}}
                 </optgroup>
               </select>
             </label>
-            <label>
-              <span>Режим</span>
+            <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckMode"}}">
+              <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.Mode"}}</span>
               <select name="check.{{index}}.mode" data-qab-check-mode>
                 {{#each row.modes as |option|}}
                   <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
                 {{/each}}
               </select>
             </label>
-            <label class="qab-dc-field">
-              <span>DC</span>
+            <label class="qab-dc-field" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckDC"}}">
+              <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.DC"}}</span>
               <input type="number" name="check.{{index}}.dc" value="{{row.dc}}" min="0">
             </label>
-            <label class="qab-defense-field">
-              <span>Защита</span>
+            <label class="qab-defense-field" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckDefense"}}">
+              <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.Defense"}}</span>
               <select name="check.{{index}}.defense">
                 {{#each row.defenses as |option|}}
                   <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
                 {{/each}}
               </select>
             </label>
-            <label class="qab-against-field">
-              <span>Against</span>
+            <label class="qab-against-field" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckAgainst"}}">
+              <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.Against"}}</span>
               <select name="check.{{index}}.against">
                 {{#each row.againsts as |option|}}
                   <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
                 {{/each}}
               </select>
             </label>
-            <label>
-              <span>Метка</span>
-              <input type="text" name="check.{{index}}.label" value="{{row.label}}" placeholder="необязательно">
+            <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckLabel"}}">
+              <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.Label"}}</span>
+              <input type="text" name="check.{{index}}.label" value="{{row.label}}" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.LabelPlaceholder"}}">
             </label>
-            <label class="qab-toggle qab-toggle--inline">
+            <label class="qab-toggle qab-toggle--inline" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckBasic"}}">
               <input type="checkbox" name="check.{{index}}.basic" {{#if row.basic}}checked{{/if}}>
-              <span>basic</span>
+              <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.Basic"}}</span>
             </label>
-            <button type="button" class="qab-icon-button qab-row-remove" data-qab-action="remove-check" title="Удалить проверку">
+            <button type="button" class="qab-icon-button qab-row-remove" data-qab-action="remove-check" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.Tooltip.RemoveCheck"}}">
               <i class="fa-solid fa-trash"></i>
             </button>
           </article>
@@ -163,56 +230,80 @@
       </div>
 
       <div class="qab-grid">
-        <label>
-          <span>Показывать DC</span>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckShowDC"}}">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.ShowDC"}}</span>
           <select name="check.showDC">
             {{#each state.check.showDCOptions as |option|}}
               <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
             {{/each}}
           </select>
         </label>
-        <label>
-          <span>Доп. traits</span>
-          <input type="text" name="check.extraTraits" value="{{state.check.extraTraits}}" placeholder="poison,death">
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckExtraTraits"}}">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.ExtraTraits"}}</span>
+          <input type="text" name="check.extraTraits" value="{{state.check.extraTraits}}" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.ExtraTraitsPlaceholder"}}">
         </label>
-        <label>
-          <span>Доп. options</span>
-          <input type="text" name="check.extraOptions" value="{{state.check.extraOptions}}" placeholder="action:custom-action">
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckExtraOptions"}}">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.ExtraOptions"}}</span>
+          <input type="text" name="check.extraOptions" value="{{state.check.extraOptions}}" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.ExtraOptionsPlaceholder"}}">
         </label>
       </div>
       <div class="qab-checks qab-checks--wide">
-        <label><input type="checkbox" name="check.secret" {{#if state.check.secret}}checked{{/if}}><span>secret</span></label>
-        <label><input type="checkbox" name="check.incapacitation" {{#if state.check.incapacitation}}checked{{/if}}><span>incapacitation</span></label>
-        <label><input type="checkbox" name="check.immutable" {{#if state.check.immutable}}checked{{/if}}><span>immutable</span></label>
-        <label><input type="checkbox" name="check.damagingEffect" {{#if state.check.damagingEffect}}checked{{/if}}><span>damaging-effect</span></label>
-        <label><input type="checkbox" name="check.breathWeapon" {{#if state.check.breathWeapon}}checked{{/if}}><span>action:breath-weapon</span></label>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckSecret"}}"><input type="checkbox" name="check.secret" {{#if state.check.secret}}checked{{/if}}><span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.Secret"}}</span></label>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckIncapacitation"}}"><input type="checkbox" name="check.incapacitation" {{#if state.check.incapacitation}}checked{{/if}}><span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.Incapacitation"}}</span></label>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckImmutable"}}"><input type="checkbox" name="check.immutable" {{#if state.check.immutable}}checked{{/if}}><span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.Immutable"}}</span></label>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckDamagingEffect"}}"><input type="checkbox" name="check.damagingEffect" {{#if state.check.damagingEffect}}checked{{/if}}><span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.DamagingEffect"}}</span></label>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.CheckBreathWeapon"}}"><input type="checkbox" name="check.breathWeapon" {{#if state.check.breathWeapon}}checked{{/if}}><span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Check.BreathWeapon"}}</span></label>
       </div>
     </div>
 
     <div class="qab-section">
       <div class="qab-section-title">
-        <h3>@Template</h3>
+        <h3>{{localize "PF2E_QUICK_ABILITY_BUILDER.Section.Template"}}</h3>
       </div>
       <div class="qab-grid">
-        <label>
-          <span>Форма</span>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.TemplateType"}}">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.Shape"}}</span>
           <select name="template.type">
             {{#each state.template.types as |option|}}
               <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
             {{/each}}
           </select>
         </label>
-        <label>
-          <span>Дистанция, футы</span>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.TemplateDistance"}}">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.Distance"}}</span>
           <input type="number" name="template.distance" value="{{state.template.distance}}" min="0">
         </label>
-        <label>
-          <span>Ширина линии</span>
-          <input type="number" name="template.width" value="{{state.template.width}}" min="0" placeholder="обычно пусто">
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.TemplateWidth"}}">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.Width"}}</span>
+          <input type="number" name="template.width" value="{{state.template.width}}" min="0" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.WidthPlaceholder"}}">
         </label>
-        <label>
-          <span>Метка</span>
-          <input type="text" name="template.label" value="{{state.template.label}}" placeholder="например: 30 футов">
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.TemplateLabel"}}">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.Label"}}</span>
+          <input type="text" name="template.label" value="{{state.template.label}}" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.LabelPlaceholder"}}">
+        </label>
+      </div>
+    </div>
+
+    <div class="qab-section">
+      <div class="qab-section-title">
+        <h3>{{localize "PF2E_QUICK_ABILITY_BUILDER.Section.Effects"}}</h3>
+      </div>
+      <div class="qab-grid">
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.EffectCritSuccess"}}" data-qab-drop="effects.critSuccess">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Effect.CritSuccess"}}</span>
+          <input type="text" name="effects.critSuccess" value="{{state.effects.critSuccess}}" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Effect.Placeholder"}}">
+        </label>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.EffectSuccess"}}" data-qab-drop="effects.success">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Effect.Success"}}</span>
+          <input type="text" name="effects.success" value="{{state.effects.success}}" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Effect.Placeholder"}}">
+        </label>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.EffectFailure"}}" data-qab-drop="effects.failure">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Effect.Failure"}}</span>
+          <input type="text" name="effects.failure" value="{{state.effects.failure}}" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Effect.Placeholder"}}">
+        </label>
+        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.EffectCritFailure"}}" data-qab-drop="effects.critFailure">
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Effect.CritFailure"}}</span>
+          <input type="text" name="effects.critFailure" value="{{state.effects.critFailure}}" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Effect.Placeholder"}}">
         </label>
       </div>
     </div>
@@ -220,19 +311,19 @@
 
   <aside class="qab-panel qab-preview-panel">
     <div class="qab-preview-header">
-      <h3>Предпросмотр</h3>
+      <h3>{{localize "PF2E_QUICK_ABILITY_BUILDER.Preview.Heading"}}</h3>
       <div class="qab-actions">
-        <button type="button" data-qab-action="copy" title="Копировать">
+        <button type="button" data-qab-action="copy" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.Tooltip.Copy"}}">
           <i class="fa-solid fa-copy"></i>
-          <span>Копировать</span>
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Preview.Copy"}}</span>
         </button>
-        <button type="button" class="qab-primary" data-qab-action="post" title="Отправить в чат">
+        <button type="button" class="qab-primary" data-qab-action="post" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.Tooltip.Post"}}">
           <i class="fa-solid fa-message"></i>
-          <span>В чат</span>
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Preview.Post"}}</span>
         </button>
-        <button type="button" class="qab-primary" data-qab-action="create-action" title="Создать действие у текущего актера">
+        <button type="button" class="qab-primary" data-qab-action="create-action" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.Tooltip.CreateAction"}}">
           <i class="fa-solid fa-person-rays"></i>
-          <span>Создать действие</span>
+          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Preview.CreateAction"}}</span>
         </button>
       </div>
     </div>

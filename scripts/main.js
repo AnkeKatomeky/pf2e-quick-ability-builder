@@ -1,12 +1,69 @@
 const MODULE_ID = "pf2e-quick-ability-builder";
 const MODULE_TITLE = "PF2e Quick Ability Builder";
+const L = (key) => game.i18n.localize(`PF2E_QUICK_ABILITY_BUILDER.${key}`);
+const LF = (key, data) => game.i18n.format(`PF2E_QUICK_ABILITY_BUILDER.${key}`, data);
 
 let activeBuilder;
+let presets = [];
+let presetsLoaded = false;
+
+// ─── Presets ────────────────────────────────────────────────────────────────
+
+async function loadPresets() {
+  presets = [];
+  presetsLoaded = false;
+
+  try {
+    const url = `modules/${MODULE_ID}/presets/index.json`;
+    const index = await foundry.utils.fetchJsonWithTimeout(url);
+    for (const entry of index) {
+      try {
+        const presetUrl = `modules/${MODULE_ID}/presets/${entry.file}`;
+        const data = await foundry.utils.fetchJsonWithTimeout(presetUrl);
+        presets.push({
+          id: entry.id,
+          name: data.name || entry.id,
+          description: data.description || "",
+          group: entry.group || "custom",
+          data
+        });
+      } catch (e) {
+        console.warn(`${MODULE_TITLE} | Failed to load preset ${entry.file}`, e);
+      }
+    }
+  } catch (e) {
+    console.warn(`${MODULE_TITLE} | No presets index found`);
+  }
+
+  presetsLoaded = true;
+  if (activeBuilder?.rendered) activeBuilder.render();
+}
+
+function applyPreset(presetId) {
+  const preset = presets.find(p => p.id === presetId);
+  if (!preset) return getDefaultState();
+
+  const state = getDefaultState();
+  foundry.utils.mergeObject(state, preset.data, {
+    inplace: true,
+    overwrite: true,
+    insertKeys: true,
+    insertValues: false
+  });
+
+  state.damage.rows = state.damage.rows.map(r => ({ ...r, id: foundry.utils.randomID() }));
+  state.check.rows = state.check.rows.map(r => ({ ...r, id: foundry.utils.randomID() }));
+  return state;
+}
+
+// ─── Hooks ──────────────────────────────────────────────────────────────────
 
 Hooks.once("init", () => {
+  loadPresets();
+
   game.keybindings.register(MODULE_ID, "open-builder", {
-    name: `${MODULE_TITLE}: открыть конструктор`,
-    hint: "Открывает окно для быстрого создания @Damage, @Check и @Template.",
+    name: L("Keybinding.Name"),
+    hint: L("Keybinding.Hint"),
     editable: [{ key: "KeyB", modifiers: ["Alt"] }],
     restricted: false,
     onDown: () => {
@@ -22,7 +79,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
 
   const tool = {
     name: "pf2e-quick-ability-builder",
-    title: MODULE_TITLE,
+    title: game.i18n.localize("PF2E_QUICK_ABILITY_BUILDER.Title"),
     icon: "fa-solid fa-wand-magic-sparkles",
     button: true,
     onClick: () => openBuilder()
@@ -45,6 +102,8 @@ function openBuilder() {
   activeBuilder = new QuickAbilityBuilder();
   activeBuilder.render(true);
 }
+
+// ─── Application ────────────────────────────────────────────────────────────
 
 class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplicationMixin(
   foundry.applications.api.ApplicationV2
@@ -75,6 +134,10 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
     }
   };
 
+  get title() {
+    return game.i18n.localize("PF2E_QUICK_ABILITY_BUILDER.Title");
+  }
+
   constructor(options = {}) {
     super(options);
     this.formState = getDefaultState();
@@ -86,6 +149,7 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
     return {
       ...(await super._prepareContext(options)),
       state,
+      presets,
       preview: buildMarkup(this.formState)
     };
   }
@@ -97,12 +161,60 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
     const { signal } = this.eventController;
 
     this.#syncModeVisibility();
+    this.#syncFrequencyFields();
+
     this.element.addEventListener("input", () => this.#refreshPreview(), { signal });
-    this.element.addEventListener("change", () => {
+
+    this.element.addEventListener("change", (event) => {
+      const presetSelect = event.target.closest("[data-qab-action='preset']");
+      if (presetSelect) {
+        this.#onPresetChange(presetSelect.value);
+        return;
+      }
+      if (event.target.closest("[data-qab-frequency]")) {
+        this.#syncFrequencyFields();
+      }
       this.#syncModeVisibility();
       this.#refreshPreview();
     }, { signal });
+
     this.element.addEventListener("click", (event) => this.#onClick(event), { signal });
+
+    this.element.addEventListener("dragover", (event) => {
+      const label = event.target.closest("[data-qab-drop]");
+      if (label) {
+        event.preventDefault();
+        label.classList.add("qab-drag-over");
+      }
+    }, { signal });
+
+    this.element.addEventListener("dragleave", (event) => {
+      const label = event.target.closest("[data-qab-drop]");
+      if (label && !label.contains(event.relatedTarget)) {
+        label.classList.remove("qab-drag-over");
+      }
+    }, { signal });
+
+    this.element.addEventListener("drop", (event) => {
+      const label = event.target.closest("[data-qab-drop]");
+      if (!label) return;
+      event.preventDefault();
+      label.classList.remove("qab-drag-over");
+      const input = label.querySelector("input");
+      if (!input) return;
+      try {
+        const raw = event.dataTransfer.getData("text/plain");
+        const data = JSON.parse(raw);
+        if (data.type === "Item" && data.uuid) {
+          input.value = `@UUID[${data.uuid}]`;
+          input.focus();
+          input.setSelectionRange(input.value.length, input.value.length);
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      } catch (e) {
+        // not drag data we understand
+      }
+    }, { signal });
   }
 
   close(options) {
@@ -124,6 +236,22 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
       row.querySelector(".qab-defense-field")?.classList.toggle("qab-hidden", mode !== "defense");
       row.querySelector(".qab-against-field")?.classList.toggle("qab-hidden", mode !== "against");
     }
+  }
+
+  #syncFrequencyFields() {
+    const freqSelect = this.element.querySelector("[data-qab-frequency]");
+    const maxField = this.element.querySelector("[data-qab-frequency-max]");
+    if (freqSelect && maxField) {
+      maxField.classList.toggle("qab-hidden", !freqSelect.value);
+    }
+  }
+
+  async #onPresetChange(presetId) {
+    if (!presetId) return;
+    this.formState = applyPreset(presetId);
+    await this.render();
+    const preset = presets.find(p => p.id === presetId);
+    if (preset) ui.notifications.info(LF("Notification.PresetLoaded", { name: preset.name }));
   }
 
   async #onClick(event) {
@@ -179,11 +307,13 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
 
     next.name = stringValue(fd, "name");
     next.description = stringValue(fd, "description");
+
     next.damage.areaDamage = fd.has("damage.areaDamage");
     next.damage.material = stringValue(fd, "damage.material");
     next.damage.sanctification = stringValue(fd, "damage.sanctification");
     next.damage.label = stringValue(fd, "damage.label");
     next.damage.extraTraits = csvValue(fd, "damage.extraTraits");
+
     next.check.showDC = stringValue(fd, "check.showDC") || "owner";
     next.check.secret = fd.has("check.secret");
     next.check.incapacitation = fd.has("check.incapacitation");
@@ -192,10 +322,21 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
     next.check.breathWeapon = fd.has("check.breathWeapon");
     next.check.extraTraits = csvValue(fd, "check.extraTraits");
     next.check.extraOptions = csvValue(fd, "check.extraOptions");
+
     next.template.type = stringValue(fd, "template.type");
     next.template.distance = stringValue(fd, "template.distance");
     next.template.width = stringValue(fd, "template.width");
     next.template.label = stringValue(fd, "template.label");
+
+    next.action.actions = stringValue(fd, "action.actions") || "1";
+    next.action.category = stringValue(fd, "action.category") || "offensive";
+    next.action.frequencyPer = normalizeFrequencyPer(stringValue(fd, "action.frequencyPer"));
+    next.action.frequencyMax = stringValue(fd, "action.frequencyMax") || "1";
+
+    next.effects.critSuccess = stringValue(fd, "effects.critSuccess");
+    next.effects.success = stringValue(fd, "effects.success");
+    next.effects.failure = stringValue(fd, "effects.failure");
+    next.effects.critFailure = stringValue(fd, "effects.critFailure");
 
     const damageCount = Number(fd.get("damage.count") ?? 0);
     next.damage.rows = Array.from({ length: damageCount }, (_, index) => ({
@@ -229,10 +370,9 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
 
   async #copy() {
     const content = buildMarkup(this.#collectState());
-
     const copied = await copyToClipboard(content);
-    if (copied) ui.notifications.info("Скопировано в буфер обмена.");
-    else ui.notifications.warn("Не удалось скопировать автоматически. Текст можно взять из предпросмотра.");
+    if (copied) ui.notifications.info(L("Notification.Copied"));
+    else ui.notifications.warn(L("Notification.CopyFailed"));
   }
 
   async #post() {
@@ -247,30 +387,32 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
     const state = this.#collectState();
     const actor = getTargetActor();
     if (!actor) {
-      ui.notifications.warn("Выберите свой токен или назначьте персонажа пользователю.");
+      ui.notifications.warn(L("Notification.SelectToken"));
       return;
     }
 
     if (!actor.isOwner) {
-      ui.notifications.warn(`Нет прав на создание действия у актера "${actor.name}".`);
+      ui.notifications.warn(LF("Notification.NoPermission", { actor: actor.name }));
       return;
     }
 
     const itemData = createActionItemData(state);
     try {
       await actor.createEmbeddedDocuments("Item", [itemData]);
-      ui.notifications.info(`Действие "${itemData.name}" создано у ${actor.name}.`);
+      ui.notifications.info(LF("Notification.ActionCreated", { name: itemData.name, actor: actor.name }));
     } catch (error) {
-      console.error(`${MODULE_TITLE} | Action creation failed`, error);
-      ui.notifications.error("Не удалось создать действие. Проверь права на актера и тип листа.");
+      console.error(`${MODULE_TITLE} | Item creation failed`, error);
+      ui.notifications.error(L("Notification.ActionFailed"));
     }
   }
 }
 
+// ─── State ──────────────────────────────────────────────────────────────────
+
 function getDefaultState() {
   return {
-    name: "Огненное дыхание",
-    description: "Существо выдыхает пламя в области.",
+    name: L("Defaults.Name"),
+    description: L("Defaults.Description"),
     damage: {
       rows: [createDamageRow()],
       areaDamage: true,
@@ -295,6 +437,18 @@ function getDefaultState() {
       distance: "30",
       width: "",
       label: ""
+    },
+    action: {
+      actions: "1",
+      category: "offensive",
+      frequencyPer: "",
+      frequencyMax: "1"
+    },
+    effects: {
+      critSuccess: "",
+      success: "",
+      failure: "",
+      critFailure: ""
     }
   };
 }
@@ -333,11 +487,11 @@ function prepareTemplateState(state) {
         ...row,
         damageTypes: markSelected(getDamageTypeOptions(), row.type)
       })),
-      materials: markSelected([{ value: "", label: "Без материала" }, ...getMaterialOptions()], state.damage.material),
+      materials: markSelected([{ value: "", label: L("Damage.MaterialNone") }, ...getMaterialOptions()], state.damage.material),
       sanctifications: markSelected([
-        { value: "", label: "Без освящения" },
-        { value: "holy", label: "Святой" },
-        { value: "unholy", label: "Нечестивый" }
+        { value: "", label: L("Damage.SanctificationNone") },
+        { value: "holy", label: L("Damage.SanctificationHoly") },
+        { value: "unholy", label: L("Damage.SanctificationUnholy") }
       ], state.damage.sanctification)
     },
     check: {
@@ -347,39 +501,43 @@ function prepareTemplateState(state) {
         saves: markSelected(getSaveOptions(), row.type),
         skills: markSelected(getSkillOptions(), row.type),
         modes: markSelected([
-          { value: "dc", label: "DC" },
-          { value: "defense", label: "Против защиты" },
-          { value: "against", label: "Против DC цели" }
+          { value: "dc", label: L("Check.ModeDC") },
+          { value: "defense", label: L("Check.ModeDefense") },
+          { value: "against", label: L("Check.ModeAgainst") }
         ], row.mode),
         defenses: markSelected([
-          { value: "ac", label: "AC" },
-          { value: "fortitude", label: "Стойкость" },
-          { value: "reflex", label: "Рефлекс" },
-          { value: "will", label: "Воля" },
-          { value: "perception", label: "Восприятие" }
+          { value: "ac", label: L("Defense.AC") },
+          { value: "fortitude", label: L("Defense.Fortitude") },
+          { value: "reflex", label: L("Defense.Reflex") },
+          { value: "will", label: L("Defense.Will") },
+          { value: "perception", label: L("Defense.Perception") }
         ], row.defense),
         againsts: markSelected([
-          { value: "class-dc", label: "Class DC" },
-          { value: "spell-dc", label: "Spell DC" },
-          { value: "class-spell", label: "Class/Spell DC" }
+          { value: "class-dc", label: L("Against.ClassDC") },
+          { value: "spell-dc", label: L("Against.SpellDC") },
+          { value: "class-spell", label: L("Against.ClassSpellDC") }
         ], row.against)
       })),
       showDCOptions: markSelected([
-        { value: "owner", label: "Владелец" },
-        { value: "gm", label: "ГМ" },
-        { value: "all", label: "Все" },
-        { value: "none", label: "Никто" }
+        { value: "owner", label: L("Check.ShowDCOwner") },
+        { value: "gm", label: L("Check.ShowDCGM") },
+        { value: "all", label: L("Check.ShowDCAll") },
+        { value: "none", label: L("Check.ShowDCNone") }
       ], state.check.showDC)
     },
     template: {
       ...state.template,
       types: markSelected([
-        { value: "", label: "Без шаблона" },
-        { value: "cone", label: "Конус" },
-        { value: "burst", label: "Взрыв" },
-        { value: "emanation", label: "Эманация" },
-        { value: "line", label: "Линия" }
+        { value: "", label: L("Template.ShapeNone") },
+        { value: "cone", label: L("Template.ShapeCone") },
+        { value: "burst", label: L("Template.ShapeBurst") },
+        { value: "emanation", label: L("Template.ShapeEmanation") },
+        { value: "line", label: L("Template.ShapeLine") }
       ], state.template.type)
+    },
+    action: {
+      ...state.action,
+      frequencyOptions: getFrequencyOptions(state.action.frequencyPer)
     }
   };
 }
@@ -390,6 +548,43 @@ function markSelected(options, selected) {
     selected: option.value === selected
   }));
 }
+
+const FREQUENCY_MAP = {
+  "": "",
+  round: "round",
+  turn: "turn",
+  minute: "PT1M",
+  "10-minutes": "PT10M",
+  hour: "PT1H",
+  "24-hours": "PT24H",
+  day: "day",
+  week: "P1W",
+  month: "P1M",
+  year: "P1Y"
+};
+
+function normalizeFrequencyPer(value) {
+  return FREQUENCY_MAP[value] ?? value;
+}
+
+function getFrequencyOptions(selected) {
+  const options = [
+    { value: "", label: L("Action.FrequencyAtWill") },
+    { value: "round", label: L("Action.FrequencyRound") },
+    { value: "turn", label: L("Action.FrequencyTurn") },
+    { value: "PT1M", label: L("Action.FrequencyMinute") },
+    { value: "PT10M", label: L("Action.Frequency10Minutes") },
+    { value: "PT1H", label: L("Action.FrequencyHour") },
+    { value: "PT24H", label: L("Action.Frequency24Hours") },
+    { value: "day", label: L("Action.FrequencyDay") },
+    { value: "P1W", label: L("Action.FrequencyWeek") },
+    { value: "P1M", label: L("Action.FrequencyMonth") },
+    { value: "P1Y", label: L("Action.FrequencyYear") }
+  ];
+  return markSelected(options, selected);
+}
+
+// ─── Markup ─────────────────────────────────────────────────────────────────
 
 function buildMarkup(state) {
   const blocks = [];
@@ -407,40 +602,76 @@ function buildMarkup(state) {
   const template = buildTemplateLink(state.template);
   if (template) blocks.push(`<p>${template}</p>`);
 
+  const effects = buildEffectsBlock(state.effects);
+  if (effects) blocks.push(effects);
+
   return blocks.join("\n");
+}
+
+function buildEffectsBlock(effects) {
+  const items = [];
+  if (effects.critSuccess) items.push(`<p><strong>${L("EffectResult.CritSuccess")}:</strong> ${toUuidLink(effects.critSuccess)}</p>`);
+  if (effects.success) items.push(`<p><strong>${L("EffectResult.Success")}:</strong> ${toUuidLink(effects.success)}</p>`);
+  if (effects.failure) items.push(`<p><strong>${L("EffectResult.Failure")}:</strong> ${toUuidLink(effects.failure)}</p>`);
+  if (effects.critFailure) items.push(`<p><strong>${L("EffectResult.CritFailure")}:</strong> ${toUuidLink(effects.critFailure)}</p>`);
+  return items.length ? items.join("\n") : "";
+}
+
+function toUuidLink(value) {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (trimmed.startsWith("@UUID[")) return trimmed;
+  const labelMatch = trimmed.match(/^(.+)\{(.+)\}$/);
+  if (labelMatch) return `@UUID[${labelMatch[1].trim()}]{${labelMatch[2].trim()}}`;
+  return `@UUID[${trimmed}]`;
 }
 
 function createActionItemData(state) {
   const content = buildMarkup(state);
-  return {
-    name: state.name || "Быстрое действие",
+
+  const traits = dedupe([
+    ...state.damage.extraTraits,
+    ...state.check.extraTraits,
+    state.damage.sanctification
+  ]);
+
+  const itemData = {
+    name: state.name || L("Defaults.ActionName"),
     type: "action",
     img: "icons/svg/dice-target.svg",
     system: {
-      description: {
-        value: content
-      },
-      actionType: {
-        value: "action"
-      },
-      actions: {
-        value: 1
-      },
-      category: "offensive",
-      traits: {
-        value: dedupe([
-          ...state.damage.extraTraits,
-          ...state.check.extraTraits,
-          state.damage.sanctification
-        ])
-      }
+      description: { value: content },
+      actionType: { value: getActionTypeValue(state.action.actions) },
+      actions: { value: getActionValue(state.action.actions) },
+      category: state.action.category || "offensive",
+      traits: { value: traits }
     },
     flags: {
-      [MODULE_ID]: {
-        createdBy: MODULE_ID
-      }
+      [MODULE_ID]: { createdBy: MODULE_ID }
     }
   };
+
+  if (state.action.frequencyPer) {
+    itemData.system.frequency = {
+      value: 0,
+      max: parseInt(state.action.frequencyMax) || 1,
+      per: state.action.frequencyPer
+    };
+  }
+
+  return itemData;
+}
+
+function getActionTypeValue(actions) {
+  if (actions === "free") return "free";
+  if (actions === "reaction") return "reaction";
+  if (actions === "passive") return "passive";
+  return "action";
+}
+
+function getActionValue(actions) {
+  if (actions === "free" || actions === "reaction" || actions === "passive") return null;
+  return parseInt(actions) || 1;
 }
 
 function getTargetActor() {
@@ -459,7 +690,6 @@ async function copyToClipboard(text) {
   } catch (error) {
     console.warn(`${MODULE_TITLE} | Clipboard API failed`, error);
   }
-
   return copyToClipboardFallback(text);
 }
 
@@ -563,22 +793,9 @@ function buildTemplateLink(template) {
 function getDamageTypeOptions() {
   const configured = game.pf2e?.damageTypes ?? CONFIG.PF2E?.damageTypes ?? {};
   const preferred = [
-    "untyped",
-    "bludgeoning",
-    "piercing",
-    "slashing",
-    "bleed",
-    "acid",
-    "cold",
-    "electricity",
-    "fire",
-    "force",
-    "sonic",
-    "spirit",
-    "vitality",
-    "void",
-    "mental",
-    "poison"
+    "untyped", "bludgeoning", "piercing", "slashing", "bleed",
+    "acid", "cold", "electricity", "fire", "force", "sonic",
+    "spirit", "vitality", "void", "mental", "poison"
   ];
   const all = dedupe([...preferred, ...Object.keys(configured).sort()]);
   return all.map((value) => ({ value, label: localize(configured[value] ?? value) }));
@@ -593,11 +810,11 @@ function getMaterialOptions() {
 
 function getSaveOptions() {
   return [
-    { value: "flat", label: "Чистая проверка" },
-    { value: "perception", label: localize("PF2E.PerceptionLabel") },
-    { value: "fortitude", label: localize(CONFIG.PF2E?.saves?.fortitude ?? "Стойкость") },
-    { value: "reflex", label: localize(CONFIG.PF2E?.saves?.reflex ?? "Рефлекс") },
-    { value: "will", label: localize(CONFIG.PF2E?.saves?.will ?? "Воля") }
+    { value: "flat", label: L("Save.Flat") },
+    { value: "perception", label: L("Save.Perception") },
+    { value: "fortitude", label: L("Save.Fortitude") },
+    { value: "reflex", label: L("Save.Reflex") },
+    { value: "will", label: L("Save.Will") }
   ];
 }
 

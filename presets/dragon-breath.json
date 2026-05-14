@@ -1,0 +1,45 @@
+{
+  "name": "Dragon Breath",
+  "description": "The creature exhales flame in a cone.",
+  "damage": {
+    "rows": [
+      { "formula": "6d6", "type": "fire", "precision": false, "splash": false, "persistent": false, "healing": false }
+    ],
+    "areaDamage": true,
+    "material": "",
+    "sanctification": "",
+    "label": "Fire damage",
+    "extraTraits": ["fire", "evocation"]
+  },
+  "check": {
+    "rows": [
+      { "type": "reflex", "mode": "dc", "dc": "20", "defense": "ac", "against": "class-spell", "basic": true, "label": "" }
+    ],
+    "showDC": "owner",
+    "secret": false,
+    "incapacitation": false,
+    "immutable": false,
+    "damagingEffect": false,
+    "breathWeapon": true,
+    "extraTraits": [],
+    "extraOptions": []
+  },
+  "template": {
+    "type": "cone",
+    "distance": "30",
+    "width": "",
+    "label": "30 ft cone"
+  },
+  "action": {
+    "actions": "1",
+    "category": "offensive",
+    "frequencyPer": "",
+    "frequencyMax": "1"
+  },
+  "effects": {
+    "critSuccess": "",
+    "success": "",
+    "failure": "",
+    "critFailure": ""
+  }
+}

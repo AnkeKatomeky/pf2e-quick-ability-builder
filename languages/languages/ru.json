@@ -1,0 +1,120 @@
+{
+  "PF2E_QUICK_ABILITY_BUILDER": {
+    "Title": "PF2e Quick Ability Builder",
+    "Keybinding": {
+      "Name": "PF2e Quick Ability Builder: открыть конструктор",
+      "Hint": "Открывает окно для быстрого создания @Damage, @Check и @Template."
+    },
+    "Defaults": {
+      "Name": "Огненное дыхание",
+      "Description": "Существо выдыхает пламя в области.",
+      "ActionName": "Быстрое действие"
+    },
+    "UI": {
+      "Kicker": "PF2e inline automation",
+      "Heading": "Конструктор кнопок",
+      "Name": "Название",
+      "NamePlaceholder": "Например: Огненное дыхание",
+      "Description": "Описание",
+      "DescriptionPlaceholder": "Короткий текст перед кнопками"
+    },
+    "Section": {
+      "Damage": "@Damage",
+      "Check": "@Check",
+      "Template": "@Template"
+    },
+    "Damage": {
+      "AddRow": "Добавить урон",
+      "Formula": "Формула",
+      "FormulaPlaceholder": "6d6",
+      "Type": "Тип",
+      "Precision": "Точный",
+      "Splash": "Брызги",
+      "Persistent": "Продолжительный",
+      "Healing": "Исцеление",
+      "Material": "Материал",
+      "MaterialNone": "Без материала",
+      "Sanctification": "Освящение",
+      "SanctificationNone": "Без освящения",
+      "SanctificationHoly": "Святой",
+      "SanctificationUnholy": "Нечестивый",
+      "ExtraTraits": "Доп. traits",
+      "ExtraTraitsPlaceholder": "fire,evocation",
+      "Label": "Метка кнопки",
+      "LabelPlaceholder": "например: Урон огнем",
+      "AreaDamage": "Добавить option area-damage"
+    },
+    "Check": {
+      "AddRow": "Добавить проверку",
+      "Type": "Тип",
+      "Skills": "Навыки",
+      "Mode": "Режим",
+      "ModeDC": "DC",
+      "ModeDefense": "Против защиты",
+      "ModeAgainst": "Против DC цели",
+      "DC": "DC",
+      "Defense": "Защита",
+      "Against": "Against",
+      "Label": "Метка",
+      "LabelPlaceholder": "необязательно",
+      "Basic": "basic",
+      "ShowDC": "Показывать DC",
+      "ShowDCOwner": "Владелец",
+      "ShowDCGM": "ГМ",
+      "ShowDCAll": "Все",
+      "ShowDCNone": "Никто",
+      "ExtraTraits": "Доп. traits",
+      "ExtraTraitsPlaceholder": "poison,death",
+      "ExtraOptions": "Доп. options",
+      "ExtraOptionsPlaceholder": "action:custom-action",
+      "Secret": "secret",
+      "Incapacitation": "incapacitation",
+      "Immutable": "immutable",
+      "DamagingEffect": "damaging-effect",
+      "BreathWeapon": "action:breath-weapon"
+    },
+    "Template": {
+      "Shape": "Форма",
+      "ShapeNone": "Без шаблона",
+      "ShapeCone": "Конус",
+      "ShapeBurst": "Взрыв",
+      "ShapeEmanation": "Эманация",
+      "ShapeLine": "Линия",
+      "Distance": "Дистанция, футы",
+      "Width": "Ширина линии",
+      "WidthPlaceholder": "обычно пусто",
+      "Label": "Метка",
+      "LabelPlaceholder": "например: 30 футов"
+    },
+    "Save": {
+      "Flat": "Чистая проверка"
+    },
+    "Against": {
+      "ClassDC": "Class DC",
+      "SpellDC": "Spell DC",
+      "ClassSpellDC": "Class/Spell DC"
+    },
+    "Preview": {
+      "Heading": "Предпросмотр",
+      "Copy": "Копировать",
+      "Post": "В чат",
+      "CreateAction": "Создать действие"
+    },
+    "Tooltip": {
+      "Reset": "Сбросить форму",
+      "RemoveDamage": "Удалить часть урона",
+      "RemoveCheck": "Удалить проверку",
+      "Copy": "Копировать",
+      "Post": "Отправить в чат",
+      "CreateAction": "Создать действие у текущего актера"
+    },
+    "Notification": {
+      "Copied": "Скопировано в буфер обмена.",
+      "CopyFailed": "Не удалось скопировать автоматически. Текст можно взять из предпросмотра.",
+      "SelectToken": "Выберите свой токен или назначьте персонажа пользователю.",
+      "NoPermission": "Нет прав на создание действия у актера \"{actor}\".",
+      "ActionCreated": "Действие \"{name}\" создано у {actor}.",
+      "ActionFailed": "Не удалось создать действие. Проверь права на актера и тип листа."
+    }
+  }
+}
