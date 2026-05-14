@@ -21,20 +21,28 @@
             <optgroup label="{{localize "PF2E_QUICK_ABILITY_BUILDER.Preset.BuiltinLabel"}}">
               {{#each presets}}
                 {{#if (eq this.group "builtin")}}
-                  <option value="{{this.id}}">{{this.name}}</option>
+                  <option value="{{this.id}}" {{#if (eq ../selectedPreset this.id)}}selected{{/if}}>{{this.name}}</option>
                 {{/if}}
               {{/each}}
             </optgroup>
             <optgroup label="{{localize "PF2E_QUICK_ABILITY_BUILDER.Preset.CustomLabel"}}">
               {{#each presets}}
                 {{#if (eq this.group "custom")}}
-                  <option value="{{this.id}}">{{this.name}}</option>
+                  <option value="{{this.id}}" {{#if (eq ../selectedPreset this.id)}}selected{{/if}}>{{this.name}}</option>
                 {{/if}}
               {{/each}}
             </optgroup>
           {{/if}}
         </select>
       </label>
+      <button type="button" data-qab-action="save-preset" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.Tooltip.SavePreset"}}">
+        <i class="fa-solid fa-floppy-disk"></i>
+        {{localize "PF2E_QUICK_ABILITY_BUILDER.Preset.Save"}}
+      </button>
+      <button type="button" data-qab-action="delete-preset" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.Tooltip.DeletePreset"}}">
+        <i class="fa-solid fa-trash"></i>
+        {{localize "PF2E_QUICK_ABILITY_BUILDER.Preset.Delete"}}
+      </button>
     </div>
 
     <div class="qab-section">
@@ -259,28 +267,42 @@
     <div class="qab-section">
       <div class="qab-section-title">
         <h3>{{localize "PF2E_QUICK_ABILITY_BUILDER.Section.Template"}}</h3>
+        <button type="button" data-qab-action="add-template" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.Tooltip.AddTemplate"}}">
+          <i class="fa-solid fa-plus"></i>
+          {{localize "PF2E_QUICK_ABILITY_BUILDER.Template.AddRow"}}
+        </button>
       </div>
-      <div class="qab-grid">
-        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.TemplateType"}}">
-          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.Shape"}}</span>
-          <select name="template.type">
-            {{#each state.template.types as |option|}}
-              <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
-            {{/each}}
-          </select>
-        </label>
-        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.TemplateDistance"}}">
-          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.Distance"}}</span>
-          <input type="number" name="template.distance" value="{{state.template.distance}}" min="0">
-        </label>
-        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.TemplateWidth"}}">
-          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.Width"}}</span>
-          <input type="number" name="template.width" value="{{state.template.width}}" min="0" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.WidthPlaceholder"}}">
-        </label>
-        <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.TemplateLabel"}}">
-          <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.Label"}}</span>
-          <input type="text" name="template.label" value="{{state.template.label}}" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.LabelPlaceholder"}}">
-        </label>
+
+      <input type="hidden" name="template.count" value="{{state.template.rows.length}}">
+      <div class="qab-stack">
+        {{#each state.template.rows as |row index|}}
+          <article class="qab-row qab-row--template" data-row-id="{{row.id}}">
+            <input type="hidden" name="template.{{index}}.id" value="{{row.id}}">
+            <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.TemplateType"}}">
+              <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.Shape"}}</span>
+              <select name="template.{{index}}.type">
+                {{#each row.types as |option|}}
+                  <option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>
+                {{/each}}
+              </select>
+            </label>
+            <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.TemplateDistance"}}">
+              <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.Distance"}}</span>
+              <input type="number" name="template.{{index}}.distance" value="{{row.distance}}" min="0">
+            </label>
+            <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.TemplateWidth"}}">
+              <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.Width"}}</span>
+              <input type="number" name="template.{{index}}.width" value="{{row.width}}" min="0" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.WidthPlaceholder"}}">
+            </label>
+            <label title="{{localize "PF2E_QUICK_ABILITY_BUILDER.TooltipField.TemplateLabel"}}">
+              <span>{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.Label"}}</span>
+              <input type="text" name="template.{{index}}.label" value="{{row.label}}" placeholder="{{localize "PF2E_QUICK_ABILITY_BUILDER.Template.LabelPlaceholder"}}">
+            </label>
+            <button type="button" class="qab-icon-button qab-row-remove" data-qab-action="remove-template" title="{{localize "PF2E_QUICK_ABILITY_BUILDER.Tooltip.RemoveTemplate"}}">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </article>
+        {{/each}}
       </div>
     </div>
 

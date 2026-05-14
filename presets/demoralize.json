@@ -23,10 +23,9 @@
     "extraOptions": []
   },
   "template": {
-    "type": "emanation",
-    "distance": "30",
-    "width": "",
-    "label": ""
+    "rows": [
+      { "type": "emanation", "distance": "30", "width": "", "label": "" }
+    ]
   },
   "action": {
     "actions": "1",

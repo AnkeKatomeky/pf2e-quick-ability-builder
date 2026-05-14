@@ -35,6 +35,18 @@ async function loadPresets() {
     console.warn(`${MODULE_TITLE} | No presets index found`);
   }
 
+  const userPresets = game.settings.get(MODULE_ID, "userPresets") ?? {};
+  for (const [id, entry] of Object.entries(userPresets)) {
+    presets.push({
+      id,
+      name: entry.name || id,
+      description: entry.description || "",
+      group: "custom",
+      user: true,
+      data: entry.state
+    });
+  }
+
   presetsLoaded = true;
   if (activeBuilder?.rendered) activeBuilder.render();
 }
@@ -51,14 +63,36 @@ function applyPreset(presetId) {
     insertValues: false
   });
 
+  if (state.template.type !== undefined && !state.template.rows) {
+    state.template.rows = [{
+      id: foundry.utils.randomID(),
+      type: state.template.type,
+      distance: state.template.distance ?? "30",
+      width: state.template.width ?? "",
+      label: state.template.label ?? ""
+    }];
+    delete state.template.type;
+    delete state.template.distance;
+    delete state.template.width;
+    delete state.template.label;
+  }
+
   state.damage.rows = state.damage.rows.map(r => ({ ...r, id: foundry.utils.randomID() }));
   state.check.rows = state.check.rows.map(r => ({ ...r, id: foundry.utils.randomID() }));
+  state.template.rows = state.template.rows.map(r => ({ ...r, id: foundry.utils.randomID() }));
   return state;
 }
 
 // ─── Hooks ──────────────────────────────────────────────────────────────────
 
 Hooks.once("init", () => {
+  game.settings.register(MODULE_ID, "userPresets", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {}
+  });
+
   loadPresets();
 
   game.keybindings.register(MODULE_ID, "open-builder", {
@@ -142,6 +176,7 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
     super(options);
     this.formState = getDefaultState();
     this.eventController = null;
+    this.currentPresetId = null;
   }
 
   async _prepareContext(options) {
@@ -150,6 +185,7 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
       ...(await super._prepareContext(options)),
       state,
       presets,
+      selectedPreset: this.currentPresetId ?? "",
       preview: buildMarkup(this.formState)
     };
   }
@@ -248,6 +284,7 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
 
   async #onPresetChange(presetId) {
     if (!presetId) return;
+    this.currentPresetId = presetId;
     this.formState = applyPreset(presetId);
     await this.render();
     const preset = presets.find(p => p.id === presetId);
@@ -285,6 +322,24 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
         this.render();
         break;
       }
+      case "add-template":
+        this.formState = this.#collectState();
+        this.formState.template.rows.push(createTemplateRow());
+        this.render();
+        break;
+      case "remove-template": {
+        const tplId = target.closest("[data-row-id]")?.dataset.rowId;
+        this.formState = this.#collectState();
+        this.formState.template.rows = this.formState.template.rows.filter((row) => row.id !== tplId);
+        this.render();
+        break;
+      }
+      case "save-preset":
+        await this.#savePreset();
+        break;
+      case "delete-preset":
+        await this.#deletePreset();
+        break;
       case "copy":
         await this.#copy();
         break;
@@ -295,6 +350,7 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
         await this.#createAction();
         break;
       case "reset":
+        this.currentPresetId = null;
         this.formState = getDefaultState();
         this.render();
         break;
@@ -323,10 +379,14 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
     next.check.extraTraits = csvValue(fd, "check.extraTraits");
     next.check.extraOptions = csvValue(fd, "check.extraOptions");
 
-    next.template.type = stringValue(fd, "template.type");
-    next.template.distance = stringValue(fd, "template.distance");
-    next.template.width = stringValue(fd, "template.width");
-    next.template.label = stringValue(fd, "template.label");
+    const templateCount = Number(fd.get("template.count") ?? 0);
+    next.template.rows = Array.from({ length: templateCount }, (_, index) => ({
+      id: stringValue(fd, `template.${index}.id`) || foundry.utils.randomID(),
+      type: stringValue(fd, `template.${index}.type`),
+      distance: stringValue(fd, `template.${index}.distance`) || "5",
+      width: stringValue(fd, `template.${index}.width`),
+      label: stringValue(fd, `template.${index}.label`)
+    }));
 
     next.action.actions = stringValue(fd, "action.actions") || "1";
     next.action.category = stringValue(fd, "action.category") || "offensive";
@@ -366,6 +426,49 @@ class QuickAbilityBuilder extends foundry.applications.api.HandlebarsApplication
 
   static #onSubmit(event, form, formData) {
     event.preventDefault();
+  }
+
+  async #savePreset() {
+    const name = await Dialog.prompt({
+      title: L("Preset.Save"),
+      content: `<p>${L("Preset.SavePrompt")}</p>
+        <input type="text" id="qab-preset-name" value="${this.formState.name}" style="width:100%">`,
+      callback: (html) => {
+        const el = html instanceof $ ? html[0] : html;
+        return el?.querySelector("#qab-preset-name")?.value?.trim();
+      },
+      rejectClose: false
+    });
+    if (!name) return;
+    const state = this.#collectState();
+    const id = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    const userPresets = game.settings.get(MODULE_ID, "userPresets") ?? {};
+    userPresets[id] = { name, description: "", state };
+    await game.settings.set(MODULE_ID, "userPresets", userPresets);
+    await loadPresets();
+    ui.notifications.info(LF("Notification.PresetSaved", { name }));
+  }
+
+  async #deletePreset() {
+    const presetSelect = this.element.querySelector("[data-qab-action='preset']");
+    const id = presetSelect?.value;
+    if (!id) return;
+    const userPresets = game.settings.get(MODULE_ID, "userPresets") ?? {};
+    if (!userPresets[id]) {
+      ui.notifications.warn(L("Preset.DeleteBuiltinWarn"));
+      return;
+    }
+    const confirmed = await Dialog.confirm({
+      title: L("Preset.Delete"),
+      content: `<p>${LF("Preset.DeleteConfirm", { name: userPresets[id].name })}</p>`
+    });
+    if (!confirmed) return;
+    delete userPresets[id];
+    await game.settings.set(MODULE_ID, "userPresets", userPresets);
+    this.currentPresetId = null;
+    this.formState = getDefaultState();
+    await loadPresets();
+    ui.notifications.info(L("Notification.PresetDeleted"));
   }
 
   async #copy() {
@@ -433,10 +536,7 @@ function getDefaultState() {
       extraOptions: []
     },
     template: {
-      type: "cone",
-      distance: "30",
-      width: "",
-      label: ""
+      rows: [createTemplateRow()]
     },
     action: {
       actions: "1",
@@ -474,6 +574,16 @@ function createCheckRow() {
     defense: "ac",
     against: "class-spell",
     basic: true,
+    label: ""
+  };
+}
+
+function createTemplateRow() {
+  return {
+    id: foundry.utils.randomID(),
+    type: "cone",
+    distance: "30",
+    width: "",
     label: ""
   };
 }
@@ -527,13 +637,16 @@ function prepareTemplateState(state) {
     },
     template: {
       ...state.template,
-      types: markSelected([
-        { value: "", label: L("Template.ShapeNone") },
-        { value: "cone", label: L("Template.ShapeCone") },
-        { value: "burst", label: L("Template.ShapeBurst") },
-        { value: "emanation", label: L("Template.ShapeEmanation") },
-        { value: "line", label: L("Template.ShapeLine") }
-      ], state.template.type)
+      rows: state.template.rows.map((row) => ({
+        ...row,
+        types: markSelected([
+          { value: "", label: L("Template.ShapeNone") },
+          { value: "cone", label: L("Template.ShapeCone") },
+          { value: "burst", label: L("Template.ShapeBurst") },
+          { value: "emanation", label: L("Template.ShapeEmanation") },
+          { value: "line", label: L("Template.ShapeLine") }
+        ], row.type)
+      }))
     },
     action: {
       ...state.action,
@@ -599,8 +712,10 @@ function buildMarkup(state) {
     if (link) blocks.push(`<p>${link}</p>`);
   }
 
-  const template = buildTemplateLink(state.template);
-  if (template) blocks.push(`<p>${template}</p>`);
+  for (const tpl of state.template.rows) {
+    const link = buildTemplateLink(tpl);
+    if (link) blocks.push(`<p>${link}</p>`);
+  }
 
   const effects = buildEffectsBlock(state.effects);
   if (effects) blocks.push(effects);

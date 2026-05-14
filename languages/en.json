@@ -75,6 +75,7 @@
       "BreathWeapon": "Breath Weapon"
     },
     "Template": {
+      "AddRow": "Add template",
       "Shape": "Shape",
       "ShapeNone": "No template",
       "ShapeCone": "Cone",
@@ -116,7 +117,12 @@
       "Label": "Preset",
       "Default": "\u2014 Select a preset \u2014",
       "BuiltinLabel": "Built-in",
-      "CustomLabel": "Custom"
+      "CustomLabel": "Custom",
+      "Save": "Save",
+      "Delete": "Delete",
+      "SavePrompt": "Enter a name for the new preset:",
+      "DeleteConfirm": "Delete preset \"{name}\"?",
+      "DeleteBuiltinWarn": "Only custom presets can be deleted."
     },
     "Action": {
       "Header": "Action Settings",
@@ -211,7 +217,11 @@
       "Post": "Post the generated markup to chat",
       "CreateAction": "Create an action on the currently selected actor",
       "AddDamage": "Add a new damage row",
-      "AddCheck": "Add a new check row"
+      "AddCheck": "Add a new check row",
+      "AddTemplate": "Add a new template",
+      "RemoveTemplate": "Remove this template",
+      "SavePreset": "Save current state as a custom preset",
+      "DeletePreset": "Delete this preset"
     },
     "Notification": {
       "Copied": "Copied to clipboard.",
@@ -221,7 +231,9 @@
       "ActionCreated": "Item \"{name}\" created on {actor}.",
       "ActionFailed": "Could not create item. Check permissions and sheet type.",
       "PresetLoaded": "Preset \"{name}\" loaded.",
-      "PresetLoadFailed": "Failed to load preset."
+      "PresetLoadFailed": "Failed to load preset.",
+      "PresetSaved": "Preset \"{name}\" saved.",
+      "PresetDeleted": "Preset deleted."
     }
   }
 }

@@ -25,10 +25,9 @@
     "extraOptions": []
   },
   "template": {
-    "type": "cone",
-    "distance": "30",
-    "width": "",
-    "label": "30 ft cone"
+    "rows": [
+      { "type": "cone", "distance": "30", "width": "", "label": "30 ft cone" }
+    ]
   },
   "action": {
     "actions": "1",

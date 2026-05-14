@@ -25,10 +25,9 @@
     "extraOptions": []
   },
   "template": {
-    "type": "",
-    "distance": "30",
-    "width": "",
-    "label": ""
+    "rows": [
+      { "type": "", "distance": "30", "width": "", "label": "" }
+    ]
   },
   "action": {
     "actions": "2",
